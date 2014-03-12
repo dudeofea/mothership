@@ -92,6 +92,7 @@ void add_effect(effect_module e){
 	}
 }
 
+//TODO: re-index all wires when this happens
 //Removes effect at specified index
 void remove_effect(int index){
 	//if out of bounds
@@ -104,6 +105,23 @@ void remove_effect(int index){
 	}
 }
 
+//Adds a patch cable to a specified index
+void add_wire_to_index(wire w, int index){
+	run_order_size++;
+	if (run_order_size > run_order_alloc)
+	{
+		run_order_alloc *= 2;		//double array size
+		run_order = (wire*)realloc(run_order, 
+			run_order_alloc * sizeof(wire));
+	}
+	//upshift everything
+	for (int i = run_order_size - 1; i >= index; i--)
+	{
+		run_order[i+1] = run_order[i];
+	}
+	run_order[index] = w;
+}
+
 //Adds a patch to the list of patch cables.
 //Assumes there is room then doubles the size
 //if neccessary. Assumes the wire's inp / inp_ports
@@ -111,15 +129,25 @@ void remove_effect(int index){
 void add_wire(wire w){
 	//if effect exists
 	if (w.module < effects_size){
-		//TODO: fix so that it adds in correct spot to
-		//satisfy dependencies
-		run_order[run_order_size++] = w;
-		if (run_order_size > run_order_alloc)
+		int insert_index = 0;
+		effect_module tmp = effects[w.module];
+		//must come after all it's inputs
+		for (int i = 0; i < tmp.inp_ports; ++i)
 		{
-			run_order_alloc *= 2;		//double array size
-			run_order = (wire*)realloc(run_order, 
-				run_order_alloc * sizeof(wire));
+			if (insert_index < w.inp[i])
+			{
+				insert_index = w.inp[i];
+			}
 		}
+		//and arguments
+		for (int i = 0; i < tmp.arg_ports; ++i)
+		{
+			if (insert_index < w.arg[i])
+			{
+				insert_index = w.arg[i];
+			}
+		}
+		add_wire_to_index(w, insert_index);
 	}
 }
 

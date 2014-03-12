@@ -1,8 +1,6 @@
 TODO LIST:
 
 ----engine.c-----
-* fix add_wire to insert in certain location
-accounting for dependencies
 * add mutex to protect run from add/rm functions
 
 ----effects.c----
