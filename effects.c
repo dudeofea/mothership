@@ -1,5 +1,3 @@
-#include <math.h>
-
 #include "effects.h"
 
 int run_effects(float* in, float* out, fftw_complex* fft_out){
@@ -16,4 +14,8 @@ int run_effects(float* in, float* out, fftw_complex* fft_out){
 	//if(val > 1)
 	//	printf("%lf\n", val);
 	return 0;
+}
+
+void test_module(float *in[], float *out[], float *args[]){
+	
 }

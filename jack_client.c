@@ -15,7 +15,7 @@
 #include <jack/jack.h>
 #include <fftw3.h>
 
-#include "effects.h"
+#include "engine.h"
 #include "print_array.h"
 
 jack_port_t *input_port;
@@ -42,19 +42,16 @@ int process (jack_nframes_t nframes, void *arg)
         jack_default_audio_sample_t *out = (jack_default_audio_sample_t *) jack_port_get_buffer (output_port, nframes);
         jack_default_audio_sample_t *in = (jack_default_audio_sample_t *) jack_port_get_buffer (input_port, nframes);
 
-	//Copy data to FFT-input buffer
+	/*//Copy data to FFT-input buffer
 	for(int i = 0; i < BUFFER_LEN; i++){
 		fft_in[i][0] = in[i];
 	}
 	//Run FFT
-	fftw_execute(p);
+	fftw_execute(p);*/
 	//Run all pedal effects
-	run_effects(in, out, fft_out);
-	print_array(fft_out, BUFFER_LEN);
-
-        //memcpy (out, in, sizeof (jack_default_audio_sample_t) * nframes);
-
-        return 0;
+	run_engine(in, out);
+	//print_array(fft_out, BUFFER_LEN);
+    return 0;
 }
 
 /**
@@ -66,7 +63,7 @@ void jack_shutdown (void *arg)
 {
 	endwin();
 	fftw_destroy_plan(p);
-        exit (1);
+    exit (1);
 }
 
 int main (int argc, char *argv[])
