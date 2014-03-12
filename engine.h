@@ -11,9 +11,31 @@ struct wire
 };
 #typedef struct wire wire
 
+struct effect_module
+{
+	int inp_ports;		//number of input buffers
+	int out_ports;		//number of output buffers
+	int arg_ports;		//number of argument buffers
+	int inp_size;		//input buffer size
+	int out_size;		//output buffer size
+						//argument port size is set to 1
+	float *inp_buf;		//buffer used to hold input data
+	float *out_buf;		//buffer used to hold output data
+	float *arg_buf;		//buffer used to hold argument data
+
+	void* aux;			//pointer to any auxilary arguments you might need
+	char* name;			//name of the effect
+	void (*effect_function)(float *in, float *out, float *arg);
+};
+#typedef struct effect_module effect_module
+
 #define JACKD_INPUT 		-1
 #define JACKD_OUTPUT		-2
 
 void run_engine(float* in, float* out);
+void add_effect(effect_module e);
+void remove_effect(int index);
+void add_wire(wire w);
+void remove_wire(int index);
 
 #endif

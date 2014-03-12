@@ -37,28 +37,28 @@ void run_engine(float* in, float* out){
 		//copy inputs
 		ports = effects[current.module].inp_ports;
 		size = effects[current.module].inp_size;
-		for (int i = 0; i < ports; ++i)
+		for (int j = 0; j < ports; ++j)
 		{
-			if (current.inp[i] >= 0)
+			if (current.inp[j] >= 0)
 			{
 				//copy from other module
-				tmp = effects[current.inp[i]];
-				memcpy(effects[current.module].inp_buf + i*size, 
-					tmp.out_buf + current.inp_ports[i]*tmp.out_size, size * sizeof(float));
-			}else if (current.inp[i] == JACKD_INPUT)
+				tmp = effects[current.inp[j]];
+				memcpy(effects[current.module].inp_buf + j*size, 
+					tmp.out_buf + current.inp_ports[j]*tmp.out_size, size * sizeof(float));
+			}else if (current.inp[j] == JACKD_INPUT)
 			{
 				//copy from global input
-				memcpy(effects[current.module].inp_buf + i*size, in, size * sizeof(float));
+				memcpy(effects[current.module].inp_buf + j*size, in, size * sizeof(float));
 			}
 		}
 		//copy arguments
 		ports = effects[current.module].arg_ports;
 		size = effects[current.module].arg_size;
-		for (int i = 0; i < ports; ++i)
+		for (int j = 0; j < ports; ++j)
 		{
-			tmp = effects[current.arg[i]];
-			memcpy(effects[current.module].arg_buf + i*size, 
-				tmp.out_buf + current.arg_ports[i]*tmp.out_size);
+			tmp = effects[current.arg[j]];
+			memcpy(effects[current.module].arg_buf + j*size, 
+				tmp.out_buf + current.arg_ports[j]*tmp.out_size);
 		}
 		//run the module function
 		current.effect_function(current.inp_buf, current.out_buf, current.arg_buf);
@@ -98,10 +98,53 @@ void remove_effect(int index){
 	//if out of bounds
 	if (index < 0 || index >= effects_size)
 		return;
+	//deallocate
+	free(effects[index].inp_buf);
+	effects[index].inp_buf = NULL;
+	free(effects[index].out_buf);
+	effects[index].out_buf = NULL;
+	free(effects[index].arg_buf);
+	effects[index].arg_buf = NULL;
 	//downshift everything
 	for (int i = index; i < effects_size - 2; i++)
 	{
 		effects[i] = effects[i+1];
+	}
+	//remove all wires referencing that module
+	for (int i = 0; i < run_order_size; ++i)
+	{
+		//remove if equal or decrement if larger
+		if (run_order[i].module == index)
+		{
+			remove_wire(i);
+		}else if (run_order[i].module > index)
+		{
+			run_order[i].module--;
+		}
+		//remove if referencing
+		effect_module tmp = effects[run_order[i].module];
+		for (int j = 0; j < tmp.inp_ports; ++j)
+		{
+			//remove if equal or decrement if larger
+			if (run_order[i].inp[j] == index)
+			{
+				remove_wire(i);
+			}else if (run_order[i].inp[j] > index)
+			{
+				run_order[i].inp[j]--;
+			}
+		}
+		for (int j = 0; j < tmp.arg_ports; ++j)
+		{
+			//remove if equal or decrement if larger
+			if (run_order[i].arg[j] == index)
+			{
+				remove_wire(i);
+			}else if (run_order[i].arg[j] > index)
+			{
+				run_order[i].arg[j]--;
+			}
+		}
 	}
 }
 

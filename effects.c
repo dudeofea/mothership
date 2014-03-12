@@ -16,6 +16,7 @@ int run_effects(float* in, float* out, fftw_complex* fft_out){
 	return 0;
 }
 
-void test_module(float *in[], float *out[], float *args[]){
+//effect_module: (BUFFER_LEN, 1), (BUFFER_LEN, 1), (1, 3)
+void test_module(float *in, float *out, float *args){
 	
 }
