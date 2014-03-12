@@ -2,7 +2,7 @@
 
 void print_array(double (*arr)[2], int size){
 	clear();
-	double scale = 0.1;
+	double scale = 0.5;
 	int row, col, pos;
 	double current_max_index;
 	static double max_index = 0;

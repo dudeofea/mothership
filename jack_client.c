@@ -49,7 +49,7 @@ int process (jack_nframes_t nframes, void *arg)
 	//Run FFT
 	fftw_execute(p);
 	//Run all pedal effects
-	//run_effects(in, out, fft_out);
+	run_effects(in, out, fft_out);
 	print_array(fft_out, BUFFER_LEN);
 
         //memcpy (out, in, sizeof (jack_default_audio_sample_t) * nframes);
