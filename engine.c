@@ -65,8 +65,14 @@ void run_engine(float* in, float* out){
 	}
 	//output to jackd
 	current = run_order[run_order_size - 1];
-	tmp = effects[current.inp[0]];
-	memcpy(out, tmp.out_buf + current.inp_ports[0]*tmp.out_size, BUFFER_LEN * sizeof(float));
+	if(current.inp[0] == JACKD_INPUT){
+		//no effects
+		memcpy(out, in, BUFFER_LEN * sizeof(float));
+	}else{
+		//an effect is attached to the output
+		tmp = effects[current.inp[0]];
+		memcpy(out, tmp.out_buf + current.inp_ports[0]*tmp.out_size, BUFFER_LEN * sizeof(float));
+	}
 	return;
 }
 
