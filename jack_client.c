@@ -14,6 +14,7 @@
 
 #include <jack/jack.h>
 #include <fftw3.h>
+#include <math.h>
 
 #include "engine.h"
 #include "print_array.h"
@@ -23,6 +24,8 @@ jack_port_t *output_port;
 
 fftw_plan p;
 fftw_complex fft_in[BUFFER_LEN], fft_out[BUFFER_LEN];
+
+float sine_wave_buf[BUFFER_LEN];
 
 static bool running = true;
 
@@ -49,7 +52,7 @@ int process (jack_nframes_t nframes, void *arg)
 	//Run FFT
 	fftw_execute(p);*/
 	//Run all pedal effects
-	run_engine(in, out);
+	run_engine(in, out, BUFFER_LEN);
 	//print_array(fft_out, BUFFER_LEN);
     return 0;
 }
@@ -61,9 +64,46 @@ int process (jack_nframes_t nframes, void *arg)
  */
 void jack_shutdown (void *arg)
 {
-	endwin();
+	//endwin();
 	fftw_destroy_plan(p);
+    ms_exit();
     exit (1);
+}
+
+//simple generic volume module
+void volume(float *in, float *out, float *arg){
+    for (int i = 0; i < (int)arg[0]; ++i)
+    {
+        out[i] = arg[1]*in[i];
+    }
+}
+
+//simple generic adder
+void adder_effect(float *in, float *out, float *arg){
+    //printf("Adding %f to  %d Values\n", arg[1], (int)arg[0]);
+    for (int i = 0; i < (int)arg[0]; ++i)
+    {
+        out[i] = in[i] + arg[1];
+    }
+}
+
+//sine wave generator
+void sine_wave(float *in, float *out, float *arg){
+    //printf("Generating %f\n", arg[0]);
+    static float index = 0;
+    for (int i = 0; i < BUFFER_LEN; ++i)
+    {
+        out[i] = sine_wave_buf[(int)index];
+        index += arg[0];
+        if (index > BUFFER_LEN)
+        {
+            index -= BUFFER_LEN;
+        }
+        if (index < 0)
+        {
+            index += BUFFER_LEN;
+        }
+    }
 }
 
 int main (int argc, char *argv[])
@@ -93,16 +133,77 @@ int main (int argc, char *argv[])
 
         jack_on_shutdown (client, jack_shutdown, 0);
 
-        /* display the current sample rate.
-         */
-
+        //display the current sample rate.
         printf ("engine sample rate: %" PRIu32 "\n",
                 jack_get_sample_rate (client));
-	/* Initialize FFT*/
+	//Initialize FFT
 	p = fftw_plan_dft_1d(BUFFER_LEN, fft_in, fft_out, FFTW_FORWARD, FFTW_MEASURE);
 
-	initscr();
-
+	//initscr();
+    //init sine buffer
+    for (int i = 0; i < BUFFER_LEN; ++i)
+    {
+        sine_wave_buf[i] = (float)sin(i * 3.141592654 / BUFFER_LEN);
+    }
+    ms_init();
+    effect_module e1 = {
+        0, 1, 1,
+        0, BUFFER_LEN,
+        NULL, NULL, NULL,
+        NULL, "sine generator",
+        sine_wave
+    };
+    add_effect(e1);
+    add_effect(e1);
+    effect_module e2 = {
+        1, 1, 2,
+        1, 1,
+        NULL, NULL, NULL,
+        NULL, "adder",
+        adder_effect
+    };
+    add_effect(e2);
+    effect_module e3 = {
+        1, 1, 2,
+        1, 1,
+        NULL, NULL, NULL,
+        NULL, "volume",
+        volume
+    };
+    add_effect(e3);
+    wire w = {
+        0,NULL,NULL,NULL,NULL
+    };
+    ms_wire_alloc(&w);
+    w.arg[0] = NO_INPUT;
+    add_wire(w);
+    wire w2a = {
+        3,NULL,NULL,NULL,NULL
+    };
+    ms_wire_alloc(&w2a);
+    w2a.inp[0] = 0;
+    w2a.inp_ports[0] = 0;
+    add_wire(w2a);
+    wire w2 = {
+        2,NULL,NULL,NULL,NULL
+    };
+    ms_wire_alloc(&w2);
+    w2.inp[0] = 3;
+    w2.inp_ports[0] = 0;
+    add_wire(w2);
+    wire w3 = {
+        1,NULL,NULL,NULL,NULL
+    };
+    ms_wire_alloc(&w3);
+    w3.arg[0] = 2;
+    w3.arg_ports[0] = 0;
+    add_wire(w3);
+    set_effect_arg(0, 0, 1.0f);
+    set_effect_arg(2, 0, 1.0f);
+    set_effect_arg(2, 1, 10.0f);
+    set_effect_arg(3, 0, 1.0f);
+    set_effect_arg(3, 1, 10.0f);
+    set_output_module(1, 0);
          /* create two ports */
 
         input_port = jack_port_register (client, "input", JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
@@ -143,15 +244,14 @@ int main (int argc, char *argv[])
 
         free (ports);
 
-        /* Since this is just a toy, run for a few seconds, then finish */
-
 	//Set signal handler
 	signal(SIGINT, intHandler);
 	while(running){
         	sleep (5);
 	}
         jack_client_close (client);
-	endwin();
+	//endwin();
 	fftw_destroy_plan(p);
+    ms_exit();
         exit (0);
 }
