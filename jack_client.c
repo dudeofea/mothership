@@ -25,7 +25,8 @@ jack_port_t *output_port;
 fftw_plan p;
 fftw_complex fft_in[BUFFER_LEN], fft_out[BUFFER_LEN];
 
-float sine_wave_buf[BUFFER_LEN];
+#define SINE_WAVE_LEN   BUFFER_LEN
+float sine_wave_buf[SINE_WAVE_LEN];
 
 static bool running = true;
 
@@ -72,6 +73,7 @@ void jack_shutdown (void *arg)
 
 //simple generic volume module
 void volume(float *in, float *out, float *arg){
+    printf("Multiplying %d values by %f\n", (int)arg[0], arg[1]);
     for (int i = 0; i < (int)arg[0]; ++i)
     {
         out[i] = arg[1]*in[i];
@@ -80,30 +82,33 @@ void volume(float *in, float *out, float *arg){
 
 //simple generic adder
 void adder_effect(float *in, float *out, float *arg){
-    //printf("Adding %f to  %d Values\n", arg[1], (int)arg[0]);
+    printf("Adding %f to  %d Values\n", arg[1], (int)arg[0]);
     for (int i = 0; i < (int)arg[0]; ++i)
     {
+        printf("val2: %f\n", in[i]);
         out[i] = in[i] + arg[1];
     }
 }
 
 //sine wave generator
 void sine_wave(float *in, float *out, float *arg){
-    //printf("Generating %f\n", arg[0]);
+    printf("Generating %f\n", arg[0]);
     static float index = 0;
     for (int i = 0; i < BUFFER_LEN; ++i)
     {
         out[i] = sine_wave_buf[(int)index];
         index += arg[0];
-        if (index > BUFFER_LEN)
+        if (index > SINE_WAVE_LEN)
         {
-            index -= BUFFER_LEN;
+            index -= SINE_WAVE_LEN;
         }
         if (index < 0)
         {
-            index += BUFFER_LEN;
+            index += SINE_WAVE_LEN;
         }
     }
+    //printf("index: %f\n", index);
+    //printf("value: %f\n", sine_wave_buf[(int)index]);
 }
 
 int main (int argc, char *argv[])
@@ -141,9 +146,9 @@ int main (int argc, char *argv[])
 
 	//initscr();
     //init sine buffer
-    for (int i = 0; i < BUFFER_LEN; ++i)
+    for (int i = 0; i < SINE_WAVE_LEN; ++i)
     {
-        sine_wave_buf[i] = (float)sin(i * 3.141592654 / BUFFER_LEN);
+        sine_wave_buf[i] = (float)sin(2* i * 3.141592654 / SINE_WAVE_LEN);
     }
     ms_init();
     effect_module e1 = {
@@ -198,12 +203,12 @@ int main (int argc, char *argv[])
     w3.arg[0] = 2;
     w3.arg_ports[0] = 0;
     add_wire(w3);
-    set_effect_arg(0, 0, 1.0f);
+    set_effect_arg(0, 0, 4.0f);
     set_effect_arg(2, 0, 1.0f);
     set_effect_arg(2, 1, 10.0f);
     set_effect_arg(3, 0, 1.0f);
-    set_effect_arg(3, 1, 10.0f);
-    set_output_module(1, 0);
+    set_effect_arg(3, 1, 3.0f);
+    set_output_module(0, 0);
          /* create two ports */
 
         input_port = jack_port_register (client, "input", JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);

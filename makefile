@@ -11,6 +11,6 @@ all:
 	$(CC) $(CFLAGS) -o jack_client jack_client.o engine.o effects.o ncurses.o -ljack -lfftw3 -lm -lncurses
 	rm -rf *.o
 run:
-	jackd -P70 -p16 -t2000 -d alsa -d hw:0 -p 1024 -n 4 -r 44100 -s &
+	jackd -P70 -p16 -t2000 -d alsa -d hw:0 -p 1024 -n 3 -r 44100 -s &
 clean:
 	rm -rf effects.o jack_client.o jack_client

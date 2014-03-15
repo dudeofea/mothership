@@ -13,15 +13,84 @@ wire *run_order;			//how to run the program
 //the last item in run_order contains which module outputs
 //to the global JACKD output
 
+void print_wire(wire w){
+	if (w.module < 0)
+	{
+		if (w.module == JACKD_OUTPUT)
+			printf("Module: Global Output\n");
+		if(w.inp[0] < 0){
+			if (w.inp[0] == JACKD_INPUT){
+				printf("Inputs: Global\n");
+			}
+		}else{
+			printf("Inputs: %d[%d]", w.inp[0], w.inp_ports[0]);
+		}
+		printf("Arguments: None\n");
+	}else{
+		printf("Module: %d\n", w.module);
+		effect_module tmp = effects[w.module];
+		printf("Inputs: ");
+		for (int i = 0; i < tmp.inp_ports; ++i)
+		{
+			if(w.inp[i] < 0){
+				if (w.inp[i] == JACKD_INPUT){
+					printf(" Global");
+				}
+			}else{
+				printf(" %d[%d]", w.inp[i], w.inp_ports[i]);
+			}
+		}
+		printf("\n");
+		printf("Arguments: ");
+		for (int i = 0; i < tmp.arg_ports; ++i)
+		{
+			if (w.arg[i] < 0)
+			{
+				printf(" None");
+			}else{
+				printf(" %d[%d]", w.arg[i], w.arg_ports[i]);
+			}
+		}
+		printf("\n");
+	}
+}
+
+void print_all_wires(){
+	for (int i = 0; i < run_order_size; ++i)
+	{
+		print_wire(run_order[i]);
+	}
+}
+
 void print_effect(effect_module e){
 	printf("Input: %d ports, %d samples each\n", e.inp_ports, e.inp_size);
+	printf("Input Buffer:\n");
+	for (int i = 0; i < e.inp_ports; ++i)
+	{
+		printf("Port %d: ", i);
+		for (int j = 0; j < e.inp_size; ++j)
+		{
+			printf("%f ", e.inp_buf[i*e.inp_size+j]);
+		}
+		printf("\n");
+	}
 	printf("Output:%d ports, %d samples each\n", e.out_ports, e.out_size);
+	printf("Output Buffer:\n");
+	for (int i = 0; i < e.out_ports; ++i)
+	{
+		printf("Port %d: ", i);
+		for (int j = 0; j < e.out_size; ++j)
+		{
+			printf("%f ", e.out_buf[i*e.out_size+j]);
+		}
+		printf("\n");
+	}
 	printf("Arguments: %d ports\n", e.arg_ports);
 }
 
 //allocates all data used in input/output buffers
 //and preps everything so it can be run
-void refresh(){
+void ms_refresh(){
 	//allocate buffers if they don't exist
 	for (int i = 0; i < effects_size; ++i)
 	{
@@ -85,7 +154,7 @@ void ms_exit(void){
 }
 
 //runs all effects
-int run_engine(float* in, float* out, int len){
+int ms_run_engine(float* in, float* out, int len){
 	wire current;		//current wire
 	effect_module tmp;
 	int ports, size;
@@ -97,7 +166,6 @@ int run_engine(float* in, float* out, int len){
 		//copy inputs
 		ports = effects[current.module].inp_ports;
 		size = effects[current.module].inp_size;
-		//print_effect(effects[current.module]);
 		for (int j = 0; j < ports; ++j)
 		{
 			if (current.inp[j] >= 0)
@@ -105,6 +173,7 @@ int run_engine(float* in, float* out, int len){
 				//printf("Input: Module %d\n", current.inp[j]);
 				//copy from other module
 				tmp = effects[current.inp[j]];
+				//print_effect(tmp);
 				memcpy(effects[current.module].inp_buf + j*size, 
 					tmp.out_buf + current.inp_ports[j]*tmp.out_size, size * sizeof(float));
 			}else if (current.inp[j] == JACKD_INPUT)
@@ -151,20 +220,20 @@ int run_engine(float* in, float* out, int len){
 	return 0;
 }
 
-effect_module get_effect(int index){
+effect_module ms_get_effect(int index){
 	return effects[index];
 }
-int get_effect_num(){
+int ms_get_effect_num(){
 	return effects_size;
 }
-void set_effect_arg(int index, int arg_port, float val){
+void ms_set_effect_arg(int index, int arg_port, float val){
 	effects[index].arg_buf[arg_port] = val;
 }
 
 //Adds a effect to the list of active effects.
 //Assumes there is room then doubles the size
 //if neccessary.
-void add_effect(effect_module e){
+void ms_add_effect(effect_module e){
 	e.inp_buf = NULL;
 	e.out_buf = NULL;
 	e.arg_buf = NULL;
@@ -175,12 +244,12 @@ void add_effect(effect_module e){
 		effects = (effect_module*)realloc(effects, 
 			effects_alloc * sizeof(effect_module));
 	}
-	refresh();
+	ms_refresh();
 }
 
 //TODO: re-index all wires when this happens
 //Removes effect at specified index
-void remove_effect(int index){
+void ms_remove_effect(int index){
 	//if out of bounds
 	if (index < 0 || index >= effects_size)
 		return;
@@ -202,7 +271,7 @@ void remove_effect(int index){
 		//remove if equal or decrement if larger
 		if (run_order[i].module == index)
 		{
-			remove_wire(i);
+			ms_remove_wire(i);
 		}else if (run_order[i].module > index)
 		{
 			run_order[i].module--;
@@ -214,7 +283,7 @@ void remove_effect(int index){
 			//remove if equal or decrement if larger
 			if (run_order[i].inp[j] == index)
 			{
-				remove_wire(i);
+				ms_remove_wire(i);
 			}else if (run_order[i].inp[j] > index)
 			{
 				run_order[i].inp[j]--;
@@ -225,7 +294,7 @@ void remove_effect(int index){
 			//remove if equal or decrement if larger
 			if (run_order[i].arg[j] == index)
 			{
-				remove_wire(i);
+				ms_remove_wire(i);
 			}else if (run_order[i].arg[j] > index)
 			{
 				run_order[i].arg[j]--;
@@ -235,14 +304,33 @@ void remove_effect(int index){
 }
 
 //sets which module outputs to JACKD_OUTPUT
-void set_output_module(int module, int port){
+void ms_set_output_module(int module, int port){
 	run_order[run_order_size - 1].inp[0] = module;
 	run_order[run_order_size - 1].inp_ports[0] = port;
 }
 
+void ms_remove_and_insert_wire(int index, int new_index){
+	//if not equal
+	if (index == new_index)
+		return;
+	//if out of bounds
+	if (index < 0 || index >= run_order_size)
+		return;
+	wire w = run_order[index];
+	//downshift everything
+	for (int i = index; i < new_index; i++)
+	{
+		run_order[i] = run_order[i+1];
+	}
+	//if out of bounds
+	if (new_index < 0 || new_index >= run_order_size)
+		return;
+	run_order[new_index] = w;
+}
+
 //Adds a patch cable to a specified index
 void add_wire_to_index(wire w, int index){
-	printf("adding wire to %d\n", index);
+	//printf("adding wire to %d\n", index);
 	run_order_size++;
 	if (run_order_size > run_order_alloc)
 	{
@@ -271,11 +359,51 @@ int get_assoc_wire_index(int module){
 	return -1;
 }
 
+//Makes sure the wires have their
+//dependencies met
+void ms_sort_wires(){
+	print_all_wires();
+	for (int i = 0; i < run_order_size - 1; ++i)
+	{
+		int insert_index = 0;
+		int assoc_index = 0;
+		effect_module tmp = effects[run_order[i].module];
+		//must come after all it's inputs
+		for (int j = 0; j < tmp.inp_ports; ++j)
+		{
+			assoc_index = get_assoc_wire_index(run_order[i].inp[j]);
+			if (insert_index <= assoc_index)
+			{
+				insert_index = assoc_index;
+				printf("wire moved to %d\n", insert_index);
+			}
+		}
+		//and arguments
+		for (int j= 0; j < tmp.arg_ports; ++j)
+		{
+			assoc_index = get_assoc_wire_index(run_order[i].arg[j]);
+			if (insert_index <= assoc_index)
+			{
+				insert_index = assoc_index;
+				printf("wire moved to %d\n", insert_index);
+			}
+		}
+		//TODO: fix sorting
+		/*if (insert_index != i)
+		{
+			ms_remove_and_insert_wire(i, insert_index);
+			i--;
+			continue;
+		}*/
+		printf("%d belongs in %d\n", i, insert_index);
+	}
+}
+
 //Adds a patch to the list of patch cables.
 //Assumes there is room then doubles the size
 //if neccessary. Assumes the wire's inp / inp_ports
 //have already been alocated
-void add_wire(wire w){
+void ms_add_wire(wire w){
 	//if effect exists
 	if (w.module < effects_size){
 		int insert_index = 0;
@@ -288,7 +416,7 @@ void add_wire(wire w){
 			if (insert_index <= assoc_index)
 			{
 				insert_index = assoc_index + 1;
-				printf("wire moved to %d\n", insert_index);
+				//printf("wire moved to %d\n", insert_index);
 			}
 		}
 		//and arguments
@@ -298,29 +426,41 @@ void add_wire(wire w){
 			if (insert_index <= assoc_index)
 			{
 				insert_index = assoc_index + 1;
-				printf("wire moved to %d\n", insert_index);
+				//printf("wire moved to %d\n", insert_index);
 			}
 		}
 		add_wire_to_index(w, insert_index);
 	}
 }
 
+wire ms_get_wire(int index){
+	return run_order[index];
+}
+
 //Removes patch cable at specified index
-void remove_wire(int index){
+void ms_remove_wire(int index){
 	//if out of bounds
 	if (index < 0 || index >= run_order_size)
 		return;
 	//downshift everything
-	for (int i = index; i < run_order_size - 2; i++)
+	for (int i = index; i < run_order_size; i++)
 	{
 		run_order[i] = run_order[i+1];
 	}
+	run_order_size--;
 }
 
 //allocates memory for a wire, assumes null pointers
 void ms_wire_alloc(wire *w){
-	int i_size = effects[w->module].inp_ports;
-	int a_size = effects[w->module].arg_ports;
+	int i_size;
+	int a_size;
+	if (w->module != JACKD_OUTPUT){
+		i_size = effects[w->module].inp_ports;
+		a_size = effects[w->module].arg_ports;
+	}else{
+		i_size = 1;
+		a_size = 0;
+	}
 	w->inp = (int*)malloc(i_size * sizeof(int));
 	w->inp_ports = (int*)malloc(i_size * sizeof(int));
 	w->arg = (int*)malloc(a_size * sizeof(int));

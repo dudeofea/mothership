@@ -37,15 +37,18 @@ typedef struct
 
 void ms_init(void);
 void ms_exit(void);
-int run_engine(float* in, float* out, int len);
-effect_module get_effect(int index);
-void set_effect_arg(int index, int arg_port, float val);
-int get_effect_num(void);
-void add_effect(effect_module e);
-void remove_effect(int index);
-void set_output_module(int module, int port);
-void add_wire(wire w);
-void remove_wire(int index);
+int ms_run_engine(float* in, float* out, int len);
+effect_module ms_get_effect(int index);
+void ms_set_effect_arg(int index, int arg_port, float val);
+int ms_get_effect_num(void);
+void ms_add_effect(effect_module e);
+void ms_remove_effect(int index);
+void ms_set_output_module(int module, int port);
+void ms_remove_and_insert_wire(int index, int new_index);
+void ms_sort_wires();
+void ms_add_wire(wire w);
+wire ms_get_wire(int index);
+void ms_remove_wire(int index);
 void ms_wire_alloc(wire *w);
 
 #endif
