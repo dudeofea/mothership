@@ -329,6 +329,54 @@ void test_wire2(void)
 
    ms_exit();
 }
+void test_wire3(void)
+{
+   ms_init();
+   effect_module e1 = {
+      1, 1, 0,
+      20, 20,
+      NULL, NULL, NULL,
+      NULL, "test_effect2",
+      add_3
+   };
+   ms_add_effect(e1);
+   ms_add_effect(e1);
+   ms_add_effect(e1);
+   static wire w = {
+      0,NULL,NULL,NULL,NULL
+   };
+   ms_wire_alloc(&w);
+   w.inp[0] = JACKD_INPUT;
+   ms_add_wire(w);
+   static wire w2 = {
+      1,NULL,NULL,NULL,NULL
+   };
+   ms_wire_alloc(&w2);
+   w2.inp[0] = JACKD_INPUT;
+   ms_add_wire(w2);
+   static wire w3 = {
+      2,NULL,NULL,NULL,NULL
+   };
+   ms_wire_alloc(&w3);
+   w3.inp[0] = JACKD_INPUT;
+   ms_add_wire(w3);
+
+   //Check wire positions
+   CU_ASSERT_TRUE(ms_get_wire(0).module == 2);
+   CU_ASSERT_TRUE(ms_get_wire(1).module == 1);
+   CU_ASSERT_TRUE(ms_get_wire(2).module == 0);
+   CU_ASSERT_TRUE(ms_get_wire(3).module == JACKD_OUTPUT);
+
+   ms_remove_and_insert_wire(2, 0);
+
+   //Check wire positions
+   CU_ASSERT_TRUE(ms_get_wire(0).module == 0);
+   CU_ASSERT_TRUE(ms_get_wire(1).module == 2);
+   CU_ASSERT_TRUE(ms_get_wire(2).module == 1);
+   CU_ASSERT_TRUE(ms_get_wire(3).module == JACKD_OUTPUT);
+
+   ms_exit();
+}
 
 /*
 *  Test effect calculations
@@ -376,6 +424,7 @@ void test_calc1(void)
    //set volume
    ms_set_effect_arg(0, 0, 2.0f);
    ms_set_output_module(1, 0);
+   ms_refresh();
    ms_run_engine(in, out, 20);
    CU_ASSERT_TRUE(array_equal(out, ans, 20));
    ms_exit();
@@ -421,6 +470,7 @@ void test_calc2(void)
    w2.arg[0] = NO_INPUT;
    ms_add_wire(w2);
    ms_set_effect_arg(0, 0, 2.0f);
+   ms_refresh();
    ms_set_output_module(0, 0);
    ms_run_engine(in, out, 20);
    CU_ASSERT_TRUE(array_equal(out, ans, 20));
@@ -476,6 +526,7 @@ void test_calc3(void)
    w3.inp[0] = 1;
    ms_add_wire(w3);
    ms_set_output_module(0, 0);
+   ms_refresh();
    ms_run_engine(in, out, 20);
    CU_ASSERT_TRUE(array_equal(out, ans, 20));
    ms_exit();
@@ -505,12 +556,13 @@ int main()
    CU_add_test(pSuite, "test add effect 2", test_add2);
    CU_add_test(pSuite, "test wire functions 1", test_wire1);
    CU_add_test(pSuite, "test wire functions 2", test_wire2);
+   CU_add_test(pSuite, "test wire functions 3", test_wire3);
    CU_add_test(pSuite, "test add wire 1", test_add3);
    CU_add_test(pSuite, "test add wire 2", test_add4);
    CU_add_test(pSuite, "test add wire 3", test_add5);
-   //CU_add_test(pSuite, "test engine calc 1", test_calc1);
-   //CU_add_test(pSuite, "test engine calc 2", test_calc2);
-   //CU_add_test(pSuite, "test engine calc 3", test_calc3);
+   CU_add_test(pSuite, "test engine calc 1", test_calc1);
+   CU_add_test(pSuite, "test engine calc 2", test_calc2);
+   CU_add_test(pSuite, "test engine calc 3", test_calc3);
 
    /* Run all tests using the CUnit Basic interface */
    CU_basic_set_mode(CU_BRM_VERBOSE);

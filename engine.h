@@ -37,6 +37,7 @@ typedef struct
 
 void ms_init(void);
 void ms_exit(void);
+void ms_refresh();
 int ms_run_engine(float* in, float* out, int len);
 effect_module ms_get_effect(int index);
 void ms_set_effect_arg(int index, int arg_port, float val);

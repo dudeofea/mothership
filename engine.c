@@ -104,6 +104,7 @@ void ms_refresh(){
 			effects[i].arg_buf = (float*)malloc(1 * effects[i].arg_ports * sizeof(float));
 		}
 	}
+	ms_sort_wires();
 }
 
 //init mothership
@@ -317,10 +318,19 @@ void ms_remove_and_insert_wire(int index, int new_index){
 	if (index < 0 || index >= run_order_size)
 		return;
 	wire w = run_order[index];
-	//downshift everything
-	for (int i = index; i < new_index; i++)
+	if (index < new_index)
 	{
-		run_order[i] = run_order[i+1];
+		//downshift everything
+		for (int i = index; i < new_index; i++)
+		{
+			run_order[i] = run_order[i+1];
+		}
+	}else{
+		//upshift everything
+		for (int i = index - 1; i >= new_index; i--)
+		{
+			run_order[i+1] = run_order[i];
+		}
 	}
 	//if out of bounds
 	if (new_index < 0 || new_index >= run_order_size)
@@ -362,9 +372,9 @@ int get_assoc_wire_index(int module){
 //Makes sure the wires have their
 //dependencies met
 void ms_sort_wires(){
-	print_all_wires();
 	for (int i = 0; i < run_order_size - 1; ++i)
 	{
+		//print_wire(run_order[i]);
 		int insert_index = 0;
 		int assoc_index = 0;
 		effect_module tmp = effects[run_order[i].module];
@@ -375,7 +385,6 @@ void ms_sort_wires(){
 			if (insert_index <= assoc_index)
 			{
 				insert_index = assoc_index;
-				printf("wire moved to %d\n", insert_index);
 			}
 		}
 		//and arguments
@@ -385,17 +394,15 @@ void ms_sort_wires(){
 			if (insert_index <= assoc_index)
 			{
 				insert_index = assoc_index;
-				printf("wire moved to %d\n", insert_index);
 			}
 		}
-		//TODO: fix sorting
-		/*if (insert_index != i)
+		//printf("%d belongs in %d\n", i, insert_index);
+		if (insert_index > i)
 		{
 			ms_remove_and_insert_wire(i, insert_index);
 			i--;
 			continue;
-		}*/
-		printf("%d belongs in %d\n", i, insert_index);
+		}
 	}
 }
 
