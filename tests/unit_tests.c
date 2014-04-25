@@ -503,8 +503,6 @@ void test_calc3(void)
    };
    ms_add_effect(e2);
    ms_add_effect(e2);
-   //set volume
-   ms_set_effect_arg(0, 0, 2.0f);
    static wire w = {
       1,NULL,NULL,NULL,NULL
    };
@@ -524,7 +522,10 @@ void test_calc3(void)
    };
    ms_wire_alloc(&w3);
    w3.inp[0] = 1;
+   w3.inp_ports[0] = 0;
    ms_add_wire(w3);
+   //set volume
+   ms_set_effect_arg(0, 0, 2.0f);
    ms_set_output_module(0, 0);
    ms_refresh();
    ms_run_engine(in, out, 20);

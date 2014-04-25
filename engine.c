@@ -63,6 +63,7 @@ void print_all_wires(){
 }
 
 void print_effect(effect_module e){
+	printf("-----%s-----\n", e.name);
 	printf("Input: %d ports, %d samples each\n", e.inp_ports, e.inp_size);
 	printf("Input Buffer:\n");
 	for (int i = 0; i < e.inp_ports; ++i)
@@ -171,8 +172,8 @@ int ms_run_engine(float* in, float* out, int len){
 		{
 			if (current.inp[j] >= 0)
 			{
-				//printf("Input: Module %d\n", current.inp[j]);
 				//copy from other module
+				//printf("Input: Module %d\n", current.inp[j]);
 				tmp = effects[current.inp[j]];
 				//print_effect(tmp);
 				memcpy(effects[current.module].inp_buf + j*size, 
@@ -190,7 +191,7 @@ int ms_run_engine(float* in, float* out, int len){
 		for (int j = 0; j < ports; ++j)
 		{
 			if (current.arg[j] != NO_INPUT){
-				//printf("Argument: Module %d\n", current.arg[j]);
+				printf("Argument: Module %d\n", current.arg[j]);
 				tmp = effects[current.arg[j]];
 				memcpy(effects[current.module].arg_buf + j*size, 
 					tmp.out_buf + current.arg_ports[j]*tmp.out_size, size * sizeof(float));
