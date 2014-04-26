@@ -191,7 +191,7 @@ int ms_run_engine(float* in, float* out, int len){
 		for (int j = 0; j < ports; ++j)
 		{
 			if (current.arg[j] != NO_INPUT){
-				printf("Argument: Module %d\n", current.arg[j]);
+				//printf("Argument: Module %d\n", current.arg[j]);
 				tmp = effects[current.arg[j]];
 				memcpy(effects[current.module].arg_buf + j*size, 
 					tmp.out_buf + current.arg_ports[j]*tmp.out_size, size * sizeof(float));
@@ -200,7 +200,7 @@ int ms_run_engine(float* in, float* out, int len){
 		//printf("running function\n");
 		//run the module function
 		tmp = effects[current.module];
-		tmp.effect_function(tmp.inp_buf, tmp.out_buf, tmp.arg_buf);
+		tmp.effect_function(tmp.inp_buf, tmp.out_buf, tmp.arg_buf, tmp.aux);
 	}
 	//output to jackd
 	current = run_order[run_order_size - 1];

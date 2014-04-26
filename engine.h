@@ -27,8 +27,9 @@ typedef struct
 						//of directly editing it in the UI
 
 	void* aux;			//pointer to any auxilary arguments you might need
+	int aux_size;		//size of auxilary buffer
 	char* name;			//name of the effect
-	void (*effect_function)(float *in, float *out, float *arg);
+	void (*effect_function)(float *in, float *out, float *arg, void* aux);
 } effect_module;
 
 #define JACKD_INPUT 		-1

@@ -46,8 +46,8 @@ int main(int argc, char const *argv[])
 		NULL, "test_effect2",
 		myeffect2
 	};
-	add_effect(e1);
-	add_effect(e2);
+	ms_add_effect(e1);
+	ms_add_effect(e2);
 	float in[20], out[20];
 	for (int i = 0; i < 20; ++i)
 	{
@@ -56,7 +56,7 @@ int main(int argc, char const *argv[])
 	printf("input: "); print_array(in, 20);
 	float arg = 3.0f;
 	//hardcode argument
-	set_effect_arg(0, 0, arg);
+	ms_set_effect_arg(0, 0, arg);
 	static wire w = {
 		0,NULL,NULL,NULL,NULL
 	};
@@ -70,9 +70,9 @@ int main(int argc, char const *argv[])
 	ms_wire_alloc(&w2, 1, 0);
 	w2.inp[0] = 0;
 	w2.inp_ports[0] = 0;
-	add_wire(w2);
-	set_output_module(1, 0);
-	if(run_engine(in, out) < 0){
+	ms_add_wire(w2);
+	ms_set_output_module(1, 0);
+	if(ms_run_engine(in, out) < 0){
 		printf("run error!\n");
 	}
 	printf("output: "); print_array(out, 20);

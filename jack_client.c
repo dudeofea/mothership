@@ -45,7 +45,7 @@ int process (jack_nframes_t nframes, void *arg)
 {
         jack_default_audio_sample_t *out = (jack_default_audio_sample_t *) jack_port_get_buffer (output_port, nframes);
         jack_default_audio_sample_t *in = (jack_default_audio_sample_t *) jack_port_get_buffer (input_port, nframes);
-
+        
 	/*//Copy data to FFT-input buffer
 	for(int i = 0; i < BUFFER_LEN; i++){
 		fft_in[i][0] = in[i];
@@ -53,7 +53,7 @@ int process (jack_nframes_t nframes, void *arg)
 	//Run FFT
 	fftw_execute(p);*/
 	//Run all pedal effects
-	run_engine(in, out, BUFFER_LEN);
+	ms_run_engine(in, out, BUFFER_LEN);
 	//print_array(fft_out, BUFFER_LEN);
     return 0;
 }
@@ -72,8 +72,8 @@ void jack_shutdown (void *arg)
 }
 
 //simple generic volume module
-void volume(float *in, float *out, float *arg){
-    printf("Multiplying %d values by %f\n", (int)arg[0], arg[1]);
+void volume(float *in, float *out, float *arg, void* aux){
+    //printf("Multiplying %d values by %f\n", (int)arg[0], arg[1]);
     for (int i = 0; i < (int)arg[0]; ++i)
     {
         out[i] = arg[1]*in[i];
@@ -81,19 +81,19 @@ void volume(float *in, float *out, float *arg){
 }
 
 //simple generic adder
-void adder_effect(float *in, float *out, float *arg){
-    printf("Adding %f to  %d Values\n", arg[1], (int)arg[0]);
+void adder_effect(float *in, float *out, float *arg, void* aux){
+    //printf("Adding %f to  %d Values\n", arg[1], (int)arg[0]);
     for (int i = 0; i < (int)arg[0]; ++i)
     {
-        printf("val2: %f\n", in[i]);
         out[i] = in[i] + arg[1];
+        //printf("val2: %f\n", out[i]);
     }
 }
 
 //sine wave generator
-void sine_wave(float *in, float *out, float *arg){
-    printf("Generating %f\n", arg[0]);
-    static float index = 0;
+void sine_wave(float *in, float *out, float *arg, void* aux){
+    //printf("Generating %f\n", arg[0]);
+    float index = ((float*)aux)[0];
     for (int i = 0; i < BUFFER_LEN; ++i)
     {
         out[i] = sine_wave_buf[(int)index];
@@ -107,6 +107,7 @@ void sine_wave(float *in, float *out, float *arg){
             index += SINE_WAVE_LEN;
         }
     }
+    ((float*)aux)[0] = index;
     //printf("index: %f\n", index);
     //printf("value: %f\n", sine_wave_buf[(int)index]);
 }
@@ -150,65 +151,80 @@ int main (int argc, char *argv[])
     {
         sine_wave_buf[i] = (float)sin(2* i * 3.141592654 / SINE_WAVE_LEN);
     }
+    //init sine buffer indexes
+    float sine_buf_i1 = 0.0;
+    float sine_buf_i2 = 0.0;
     ms_init();
-    effect_module e1 = {
+    effect_module e11 = {
         0, 1, 1,
         0, BUFFER_LEN,
         NULL, NULL, NULL,
-        NULL, "sine generator",
+        &sine_buf_i1, sizeof(float),
+        "sine generator",
         sine_wave
     };
-    add_effect(e1);
-    add_effect(e1);
+    ms_add_effect(e11);
+    effect_module e12 = {
+        0, 1, 1,
+        0, BUFFER_LEN,
+        NULL, NULL, NULL,
+        &sine_buf_i2, sizeof(float),
+        "sine generator",
+        sine_wave
+    };
+    ms_add_effect(e12);
     effect_module e2 = {
         1, 1, 2,
         1, 1,
         NULL, NULL, NULL,
-        NULL, "adder",
+        NULL, 0,
+        "adder",
         adder_effect
     };
-    add_effect(e2);
+    ms_add_effect(e2);
     effect_module e3 = {
         1, 1, 2,
         1, 1,
         NULL, NULL, NULL,
-        NULL, "volume",
+        NULL, 0,
+        "volume",
         volume
     };
-    add_effect(e3);
+    ms_add_effect(e3);
     wire w = {
         0,NULL,NULL,NULL,NULL
     };
     ms_wire_alloc(&w);
     w.arg[0] = NO_INPUT;
-    add_wire(w);
+    ms_add_wire(w);
     wire w2a = {
         3,NULL,NULL,NULL,NULL
     };
     ms_wire_alloc(&w2a);
     w2a.inp[0] = 0;
     w2a.inp_ports[0] = 0;
-    add_wire(w2a);
+    ms_add_wire(w2a);
     wire w2 = {
         2,NULL,NULL,NULL,NULL
     };
     ms_wire_alloc(&w2);
     w2.inp[0] = 3;
     w2.inp_ports[0] = 0;
-    add_wire(w2);
+    ms_add_wire(w2);
     wire w3 = {
         1,NULL,NULL,NULL,NULL
     };
     ms_wire_alloc(&w3);
     w3.arg[0] = 2;
     w3.arg_ports[0] = 0;
-    add_wire(w3);
-    set_effect_arg(0, 0, 4.0f);
-    set_effect_arg(2, 0, 1.0f);
-    set_effect_arg(2, 1, 10.0f);
-    set_effect_arg(3, 0, 1.0f);
-    set_effect_arg(3, 1, 3.0f);
-    set_output_module(0, 0);
+    ms_add_wire(w3);
+    ms_set_effect_arg(0, 0, 0.01f);
+    ms_set_effect_arg(2, 0, 1.0f);
+    ms_set_effect_arg(2, 1, 3.0f);
+    ms_set_effect_arg(3, 0, 1.0f);
+    ms_set_effect_arg(3, 1, 1.0f);
+
+    ms_set_output_module(1, 0);
          /* create two ports */
 
         input_port = jack_port_register (client, "input", JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
