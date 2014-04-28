@@ -17,7 +17,7 @@ bool array_equal(float *arr1, float *arr2, int size){
 
 //simple volume module
 //buffer size is 20
-void volume_effect(float *in, float *out, float *arg){
+void volume_effect(float *in, float *out, float *arg, void* aux){
    int buf_len = 20;
    //printf("out1: ");
    for (int i = 0; i < buf_len; ++i)
@@ -29,7 +29,7 @@ void volume_effect(float *in, float *out, float *arg){
 }
 
 //Adds 3 to output
-void add_3(float *in, float *out, float *arg){
+void add_3(float *in, float *out, float *arg, void* aux){
    int buf_len = 20;
    //printf("in2: \n");
    for (int i = 0; i < buf_len; ++i)
@@ -45,190 +45,199 @@ void add_3(float *in, float *out, float *arg){
 */
 void test_add1(void)
 {
-   ms_init();
+   engine_config config = ms_init();
    effect_module e1 = {
       1, 1, 1,
       20, 20,
       NULL, NULL, NULL,
-      NULL, "test_effect1",
+      NULL, 0,
+      "test_effect1",
       volume_effect
    };
-   ms_add_effect(e1);
-   CU_ASSERT_TRUE(ms_get_effect(0).inp_ports == 1);
-   CU_ASSERT_TRUE(ms_get_effect(0).out_ports == 1);
-   CU_ASSERT_TRUE(ms_get_effect(0).arg_ports == 1);
-   CU_ASSERT_TRUE(ms_get_effect(0).inp_size == 20);
-   CU_ASSERT_TRUE(ms_get_effect(0).out_size == 20);
-   ms_exit();
+   ms_add_effect(e1, &config);
+   CU_ASSERT_TRUE(config.effects[0].inp_ports == 1);
+   CU_ASSERT_TRUE(config.effects[0].out_ports == 1);
+   CU_ASSERT_TRUE(config.effects[0].arg_ports == 1);
+   CU_ASSERT_TRUE(config.effects[0].inp_size == 20);
+   CU_ASSERT_TRUE(config.effects[0].out_size == 20);
+   ms_exit(&config);
 }
 void test_add2(void)
 {
-   ms_init();
+   engine_config config = ms_init();
    effect_module e1 = {
       1, 1, 1,
       20, 20,
       NULL, NULL, NULL,
-      NULL, "test_effect1",
+      NULL, 0,
+      "test_effect1",
       volume_effect
    };
-   ms_add_effect(e1);
+   ms_add_effect(e1, &config);
    effect_module e2 = {
       1, 1, 0,
       20, 20,
       NULL, NULL, NULL,
-      NULL, "test_effect2",
+      NULL, 0,
+      "test_effect2",
       add_3
    };
-   ms_add_effect(e2);
-   CU_ASSERT_TRUE(ms_get_effect(0).inp_ports == 1);
-   CU_ASSERT_TRUE(ms_get_effect(0).out_ports == 1);
-   CU_ASSERT_TRUE(ms_get_effect(0).arg_ports == 1);
-   CU_ASSERT_TRUE(ms_get_effect(0).inp_size == 20);
-   CU_ASSERT_TRUE(ms_get_effect(0).out_size == 20);
+   ms_add_effect(e2, &config);
+   CU_ASSERT_TRUE(config.effects[0].inp_ports == 1);
+   CU_ASSERT_TRUE(config.effects[0].out_ports == 1);
+   CU_ASSERT_TRUE(config.effects[0].arg_ports == 1);
+   CU_ASSERT_TRUE(config.effects[0].inp_size == 20);
+   CU_ASSERT_TRUE(config.effects[0].out_size == 20);
 
-   CU_ASSERT_TRUE(ms_get_effect(1).inp_ports == 1);
-   CU_ASSERT_TRUE(ms_get_effect(1).out_ports == 1);
-   CU_ASSERT_TRUE(ms_get_effect(1).arg_ports == 0);
-   CU_ASSERT_TRUE(ms_get_effect(1).inp_size == 20);
-   CU_ASSERT_TRUE(ms_get_effect(1).out_size == 20);
-   ms_exit();
+   CU_ASSERT_TRUE(config.effects[1].inp_ports == 1);
+   CU_ASSERT_TRUE(config.effects[1].out_ports == 1);
+   CU_ASSERT_TRUE(config.effects[1].arg_ports == 0);
+   CU_ASSERT_TRUE(config.effects[1].inp_size == 20);
+   CU_ASSERT_TRUE(config.effects[1].out_size == 20);
+   ms_exit(&config);
 }
 void test_add3(void)
 {
-   ms_init();
+   engine_config config = ms_init();
    effect_module e1 = {
       1, 1, 1,
       20, 20,
       NULL, NULL, NULL,
-      NULL, "test_effect1",
+      NULL, 0,
+      "test_effect1",
       volume_effect
    };
-   ms_add_effect(e1);
+   ms_add_effect(e1, &config);
    effect_module e2 = {
       1, 1, 0,
       20, 20,
       NULL, NULL, NULL,
-      NULL, "test_effect2",
+      NULL, 0,
+      "test_effect2",
       add_3
    };
-   ms_add_effect(e2);
+   ms_add_effect(e2, &config);
    static wire w = {
       0,NULL,NULL,NULL,NULL
    };
-   ms_wire_alloc(&w);
+   ms_wire_alloc(&w, &config);
    w.inp[0] = JACKD_INPUT;
    w.arg[0] = NO_INPUT;
-   ms_add_wire(w);
+   ms_add_wire(w, &config);
    static wire w2 = {
       1,NULL,NULL,NULL,NULL
    };
-   ms_wire_alloc(&w2);
+   ms_wire_alloc(&w2, &config);
    w2.inp[0] = 0;
    w2.inp_ports[0] = 0;
-   ms_add_wire(w2);
-   ms_set_effect_arg(0, 0, 1.0f);
+   ms_add_wire(w2, &config);
+   ms_set_effect_arg(0, 0, 1.0f, &config);
 
    //Check wire positions
-   CU_ASSERT_TRUE(ms_get_wire(0).module == 0);
-   CU_ASSERT_TRUE(ms_get_wire(1).module == 1);
-   CU_ASSERT_TRUE(ms_get_wire(2).module == JACKD_OUTPUT);
+   CU_ASSERT_TRUE(config.run_order[0].module == 0);
+   CU_ASSERT_TRUE(config.run_order[1].module == 1);
+   CU_ASSERT_TRUE(config.run_order[2].module == JACKD_OUTPUT);
 
-   ms_exit();
+   ms_exit(&config);
 }
 void test_add4(void)
 {
-   ms_init();
+   engine_config config = ms_init();
    effect_module e1 = {
       1, 1, 1,
       20, 20,
       NULL, NULL, NULL,
-      NULL, "test_effect1",
+      NULL, 0,
+      "test_effect1",
       volume_effect
    };
-   ms_add_effect(e1);
+   ms_add_effect(e1, &config);
    effect_module e2 = {
       1, 1, 0,
       20, 20,
       NULL, NULL, NULL,
-      NULL, "test_effect2",
+      NULL, 0,
+      "test_effect2",
       add_3
    };
-   ms_add_effect(e2);
+   ms_add_effect(e2, &config);
    static wire w2 = {
       1,NULL,NULL,NULL,NULL
    };
-   ms_wire_alloc(&w2);
+   ms_wire_alloc(&w2, &config);
    w2.inp[0] = 0;
    w2.inp_ports[0] = 0;
-   ms_add_wire(w2);
+   ms_add_wire(w2, &config);
    static wire w = {
       0,NULL,NULL,NULL,NULL
    };
-   ms_wire_alloc(&w);
+   ms_wire_alloc(&w, &config);
    w.inp[0] = JACKD_INPUT;
    w.arg[0] = NO_INPUT;
-   ms_add_wire(w);
-   ms_set_effect_arg(0, 0, 1.0f);
+   ms_add_wire(w, &config);
+   ms_set_effect_arg(0, 0, 1.0f, &config);
 
    //Check wire positions
-   CU_ASSERT_TRUE(ms_get_wire(0).module == 0);
-   CU_ASSERT_TRUE(ms_get_wire(1).module == 1);
-   CU_ASSERT_TRUE(ms_get_wire(2).module == JACKD_OUTPUT);
+   CU_ASSERT_TRUE(config.run_order[0].module == 0);
+   CU_ASSERT_TRUE(config.run_order[1].module == 1);
+   CU_ASSERT_TRUE(config.run_order[2].module == JACKD_OUTPUT);
 
-   ms_exit();
+   ms_exit(&config);
 }
 void test_add5(void)
 {
-   ms_init();
+   engine_config config = ms_init();
    effect_module e1 = {
       1, 1, 1,
       20, 20,
       NULL, NULL, NULL,
-      NULL, "test_effect1",
+      NULL, 0,
+      "test_effect1",
       volume_effect
    };
-   ms_add_effect(e1);
+   ms_add_effect(e1, &config);
    effect_module e2 = {
       1, 1, 0,
       20, 20,
       NULL, NULL, NULL,
-      NULL, "test_effect2",
+      NULL, 0,
+      "test_effect2",
       add_3
    };
-   ms_add_effect(e2);
-   ms_add_effect(e2);
+   ms_add_effect(e2, &config);
+   ms_add_effect(e2, &config);
    static wire w = {
       0,NULL,NULL,NULL,NULL
    };
-   ms_wire_alloc(&w);
+   ms_wire_alloc(&w, &config);
    w.inp[0] = JACKD_INPUT;
    w.arg[0] = NO_INPUT;
-   ms_add_wire(w);
+   ms_add_wire(w, &config);
    static wire w2 = {
       2,NULL,NULL,NULL,NULL
    };
-   ms_wire_alloc(&w2);
+   ms_wire_alloc(&w2, &config);
    w2.inp[0] = 1;
    w2.inp_ports[0] = 0;
-   ms_add_wire(w2);
+   ms_add_wire(w2, &config);
    static wire w3 = {
       1,NULL,NULL,NULL,NULL
    };
-   ms_wire_alloc(&w3);
+   ms_wire_alloc(&w3, &config);
    w3.inp[0] = 0;
    w3.inp_ports[0] = 0;
-   ms_add_wire(w3);
-   ms_set_effect_arg(0, 0, 1.0f);
+   ms_add_wire(w3, &config);
+   ms_set_effect_arg(0, 0, 1.0f, &config);
 
-   ms_sort_wires();
+   ms_sort_wires(&config);
 
    //Check wire positions
-   CU_ASSERT_TRUE(ms_get_wire(0).module == 0);
-   CU_ASSERT_TRUE(ms_get_wire(1).module == 1);
-   CU_ASSERT_TRUE(ms_get_wire(2).module == 2);
-   CU_ASSERT_TRUE(ms_get_wire(3).module == JACKD_OUTPUT);
+   CU_ASSERT_TRUE(config.run_order[0].module == 0);
+   CU_ASSERT_TRUE(config.run_order[1].module == 1);
+   CU_ASSERT_TRUE(config.run_order[2].module == 2);
+   CU_ASSERT_TRUE(config.run_order[3].module == JACKD_OUTPUT);
 
-   ms_exit();
+   ms_exit(&config);
 }
 
 /*
@@ -236,146 +245,149 @@ void test_add5(void)
 */
 void test_wire1(void)
 {
-   ms_init();
+   engine_config config = ms_init();
    effect_module e1 = {
       1, 1, 0,
       20, 20,
       NULL, NULL, NULL,
-      NULL, "test_effect2",
+      NULL, 0,
+      "test_effect2",
       add_3
    };
-   ms_add_effect(e1);
-   ms_add_effect(e1);
-   ms_add_effect(e1);
+   ms_add_effect(e1, &config);
+   ms_add_effect(e1, &config);
+   ms_add_effect(e1, &config);
    static wire w = {
       0,NULL,NULL,NULL,NULL
    };
-   ms_wire_alloc(&w);
+   ms_wire_alloc(&w, &config);
    w.inp[0] = JACKD_INPUT;
-   ms_add_wire(w);
+   ms_add_wire(w, &config);
    static wire w2 = {
       1,NULL,NULL,NULL,NULL
    };
-   ms_wire_alloc(&w2);
+   ms_wire_alloc(&w2, &config);
    w2.inp[0] = JACKD_INPUT;
-   ms_add_wire(w2);
+   ms_add_wire(w2, &config);
    static wire w3 = {
       2,NULL,NULL,NULL,NULL
    };
-   ms_wire_alloc(&w3);
+   ms_wire_alloc(&w3, &config);
    w3.inp[0] = JACKD_INPUT;
-   ms_add_wire(w3);
+   ms_add_wire(w3, &config);
 
    //Check wire positions
-   CU_ASSERT_TRUE(ms_get_wire(0).module == 2);
-   CU_ASSERT_TRUE(ms_get_wire(1).module == 1);
-   CU_ASSERT_TRUE(ms_get_wire(2).module == 0);
-   CU_ASSERT_TRUE(ms_get_wire(3).module == JACKD_OUTPUT);
+   CU_ASSERT_TRUE(config.run_order[0].module == 2);
+   CU_ASSERT_TRUE(config.run_order[1].module == 1);
+   CU_ASSERT_TRUE(config.run_order[2].module == 0);
+   CU_ASSERT_TRUE(config.run_order[3].module == JACKD_OUTPUT);
 
-   ms_remove_and_insert_wire(0, 3);
+   ms_remove_and_insert_wire(0, 3, &config);
 
    //Check wire positions
-   CU_ASSERT_TRUE(ms_get_wire(0).module == 1);
-   CU_ASSERT_TRUE(ms_get_wire(1).module == 0);
-   CU_ASSERT_TRUE(ms_get_wire(2).module == JACKD_OUTPUT);
-   CU_ASSERT_TRUE(ms_get_wire(3).module == 2);
+   CU_ASSERT_TRUE(config.run_order[0].module == 1);
+   CU_ASSERT_TRUE(config.run_order[1].module == 0);
+   CU_ASSERT_TRUE(config.run_order[2].module == JACKD_OUTPUT);
+   CU_ASSERT_TRUE(config.run_order[3].module == 2);
 
-   ms_exit();
+   ms_exit(&config);
 }
 void test_wire2(void)
 {
-   ms_init();
+   engine_config config = ms_init();
    effect_module e1 = {
       1, 1, 0,
       20, 20,
       NULL, NULL, NULL,
-      NULL, "test_effect2",
+      NULL, 0,
+      "test_effect2",
       add_3
    };
-   ms_add_effect(e1);
-   ms_add_effect(e1);
-   ms_add_effect(e1);
+   ms_add_effect(e1, &config);
+   ms_add_effect(e1, &config);
+   ms_add_effect(e1, &config);
    static wire w = {
       0,NULL,NULL,NULL,NULL
    };
-   ms_wire_alloc(&w);
+   ms_wire_alloc(&w, &config);
    w.inp[0] = JACKD_INPUT;
-   ms_add_wire(w);
+   ms_add_wire(w, &config);
    static wire w2 = {
       1,NULL,NULL,NULL,NULL
    };
-   ms_wire_alloc(&w2);
+   ms_wire_alloc(&w2, &config);
    w2.inp[0] = JACKD_INPUT;
-   ms_add_wire(w2);
+   ms_add_wire(w2, &config);
    static wire w3 = {
       2,NULL,NULL,NULL,NULL
    };
-   ms_wire_alloc(&w3);
+   ms_wire_alloc(&w3, &config);
    w3.inp[0] = JACKD_INPUT;
-   ms_add_wire(w3);
+   ms_add_wire(w3, &config);
 
    //Check wire positions
-   CU_ASSERT_TRUE(ms_get_wire(0).module == 2);
-   CU_ASSERT_TRUE(ms_get_wire(1).module == 1);
-   CU_ASSERT_TRUE(ms_get_wire(2).module == 0);
-   CU_ASSERT_TRUE(ms_get_wire(3).module == JACKD_OUTPUT);
+   CU_ASSERT_TRUE(config.run_order[0].module == 2);
+   CU_ASSERT_TRUE(config.run_order[1].module == 1);
+   CU_ASSERT_TRUE(config.run_order[2].module == 0);
+   CU_ASSERT_TRUE(config.run_order[3].module == JACKD_OUTPUT);
 
-   ms_remove_wire(1);
+   ms_remove_wire(1, &config);
 
    //Check wire positions
-   CU_ASSERT_TRUE(ms_get_wire(0).module == 2);
-   CU_ASSERT_TRUE(ms_get_wire(1).module == 0);
-   CU_ASSERT_TRUE(ms_get_wire(2).module == JACKD_OUTPUT);
+   CU_ASSERT_TRUE(config.run_order[0].module == 2);
+   CU_ASSERT_TRUE(config.run_order[1].module == 0);
+   CU_ASSERT_TRUE(config.run_order[2].module == JACKD_OUTPUT);
 
-   ms_exit();
+   ms_exit(&config);
 }
 void test_wire3(void)
 {
-   ms_init();
+   engine_config config = ms_init();
    effect_module e1 = {
       1, 1, 0,
       20, 20,
       NULL, NULL, NULL,
-      NULL, "test_effect2",
+      NULL, 0,
+      "test_effect2",
       add_3
    };
-   ms_add_effect(e1);
-   ms_add_effect(e1);
-   ms_add_effect(e1);
+   ms_add_effect(e1, &config);
+   ms_add_effect(e1, &config);
+   ms_add_effect(e1, &config);
    static wire w = {
       0,NULL,NULL,NULL,NULL
    };
-   ms_wire_alloc(&w);
+   ms_wire_alloc(&w, &config);
    w.inp[0] = JACKD_INPUT;
-   ms_add_wire(w);
+   ms_add_wire(w, &config);
    static wire w2 = {
       1,NULL,NULL,NULL,NULL
    };
-   ms_wire_alloc(&w2);
+   ms_wire_alloc(&w2, &config);
    w2.inp[0] = JACKD_INPUT;
-   ms_add_wire(w2);
+   ms_add_wire(w2, &config);
    static wire w3 = {
       2,NULL,NULL,NULL,NULL
    };
-   ms_wire_alloc(&w3);
+   ms_wire_alloc(&w3, &config);
    w3.inp[0] = JACKD_INPUT;
-   ms_add_wire(w3);
+   ms_add_wire(w3, &config);
 
    //Check wire positions
-   CU_ASSERT_TRUE(ms_get_wire(0).module == 2);
-   CU_ASSERT_TRUE(ms_get_wire(1).module == 1);
-   CU_ASSERT_TRUE(ms_get_wire(2).module == 0);
-   CU_ASSERT_TRUE(ms_get_wire(3).module == JACKD_OUTPUT);
+   CU_ASSERT_TRUE(config.run_order[0].module == 2);
+   CU_ASSERT_TRUE(config.run_order[1].module == 1);
+   CU_ASSERT_TRUE(config.run_order[2].module == 0);
+   CU_ASSERT_TRUE(config.run_order[3].module == JACKD_OUTPUT);
 
-   ms_remove_and_insert_wire(2, 0);
+   ms_remove_and_insert_wire(2, 0, &config);
 
    //Check wire positions
-   CU_ASSERT_TRUE(ms_get_wire(0).module == 0);
-   CU_ASSERT_TRUE(ms_get_wire(1).module == 2);
-   CU_ASSERT_TRUE(ms_get_wire(2).module == 1);
-   CU_ASSERT_TRUE(ms_get_wire(3).module == JACKD_OUTPUT);
+   CU_ASSERT_TRUE(config.run_order[0].module == 0);
+   CU_ASSERT_TRUE(config.run_order[1].module == 2);
+   CU_ASSERT_TRUE(config.run_order[2].module == 1);
+   CU_ASSERT_TRUE(config.run_order[3].module == JACKD_OUTPUT);
 
-   ms_exit();
+   ms_exit(&config);
 }
 
 /*
@@ -383,7 +395,7 @@ void test_wire3(void)
 */
 void test_calc1(void)
 {
-   ms_init();
+   engine_config config = ms_init();
    float in[20], out[20];
    float ans[20];
    for (int i = 0; i < 20; ++i)
@@ -395,43 +407,45 @@ void test_calc1(void)
       1, 1, 1,
       20, 20,
       NULL, NULL, NULL,
-      NULL, "test_effect1",
+      NULL, 0,
+      "test_effect1",
       volume_effect
    };
-   ms_add_effect(e1);
+   ms_add_effect(e1, &config);
    effect_module e2 = {
       1, 1, 0,
       20, 20,
       NULL, NULL, NULL,
-      NULL, "test_effect2",
+      NULL, 0,
+      "test_effect2",
       add_3
    };
-   ms_add_effect(e2);
+   ms_add_effect(e2, &config);
    static wire w = {
       0,NULL,NULL,NULL,NULL
    };
-   ms_wire_alloc(&w);
+   ms_wire_alloc(&w, &config);
    w.inp[0] = JACKD_INPUT;
    w.arg[0] = NO_INPUT;
-   ms_add_wire(w);
+   ms_add_wire(w, &config);
    static wire w2 = {
       1,NULL,NULL,NULL,NULL
    };
-   ms_wire_alloc(&w2);
+   ms_wire_alloc(&w2, &config);
    w2.inp[0] = 0;
    w2.inp_ports[0] = 0;
-   ms_add_wire(w2);
+   ms_add_wire(w2, &config);
    //set volume
-   ms_set_effect_arg(0, 0, 2.0f);
-   ms_set_output_module(1, 0);
-   ms_refresh();
-   ms_run_engine(in, out, 20);
+   ms_set_effect_arg(0, 0, 2.0f, &config);
+   ms_set_output_module(1, 0, &config);
+   ms_refresh(&config);
+   ms_run_engine(in, out, 20, &config);
    CU_ASSERT_TRUE(array_equal(out, ans, 20));
-   ms_exit();
+   ms_exit(&config);
 }
 void test_calc2(void)
 {
-   ms_init();
+   engine_config config = ms_init();
    float in[20], out[20];
    float ans[20];
    for (int i = 0; i < 20; ++i)
@@ -443,42 +457,44 @@ void test_calc2(void)
       1, 1, 1,
       20, 20,
       NULL, NULL, NULL,
-      NULL, "test_effect1",
+      NULL, 0,
+      "test_effect1",
    volume_effect
    };
-   ms_add_effect(e1);
+   ms_add_effect(e1, &config);
    effect_module e2 = {
       1, 1, 0,
       20, 20,
       NULL, NULL, NULL,
-      NULL, "test_effect2",
+      NULL, 0,
+      "test_effect2",
    add_3
    };
-   ms_add_effect(e2);
+   ms_add_effect(e2, &config);
    static wire w = {
       1,NULL,NULL,NULL,NULL
    };
-   ms_wire_alloc(&w);
+   ms_wire_alloc(&w, &config);
    w.inp[0] = JACKD_INPUT;
-   ms_add_wire(w);
+   ms_add_wire(w, &config);
    static wire w2 = {
       0,NULL,NULL,NULL,NULL
    };
-   ms_wire_alloc(&w2);
+   ms_wire_alloc(&w2, &config);
    w2.inp[0] = 1;
    w2.inp_ports[0] = 0;
    w2.arg[0] = NO_INPUT;
-   ms_add_wire(w2);
-   ms_set_effect_arg(0, 0, 2.0f);
-   ms_refresh();
-   ms_set_output_module(0, 0);
-   ms_run_engine(in, out, 20);
+   ms_add_wire(w2, &config);
+   ms_set_effect_arg(0, 0, 2.0f, &config);
+   ms_refresh(&config);
+   ms_set_output_module(0, 0, &config);
+   ms_run_engine(in, out, 20, &config);
    CU_ASSERT_TRUE(array_equal(out, ans, 20));
-   ms_exit();
+   ms_exit(&config);
 }
 void test_calc3(void)
 {
-   ms_init();
+   engine_config config = ms_init();
    float in[20], out[20];
    float ans[20];
    for (int i = 0; i < 20; ++i)
@@ -490,47 +506,49 @@ void test_calc3(void)
       1, 1, 1,
       20, 20,
       NULL, NULL, NULL,
-      NULL, "test_effect1",
+      NULL, 0,
+      "test_effect1",
       volume_effect
    };
-   ms_add_effect(e1);
+   ms_add_effect(e1, &config);
    effect_module e2 = {
       1, 1, 0,
       20, 20,
       NULL, NULL, NULL,
-      NULL, "test_effect2",
+      NULL, 0,
+      "test_effect2",
       add_3
    };
-   ms_add_effect(e2);
-   ms_add_effect(e2);
+   ms_add_effect(e2, &config);
+   ms_add_effect(e2, &config);
    static wire w = {
       1,NULL,NULL,NULL,NULL
    };
-   ms_wire_alloc(&w);
+   ms_wire_alloc(&w, &config);
    w.inp[0] = JACKD_INPUT;
-   ms_add_wire(w);
+   ms_add_wire(w, &config);
    static wire w2 = {
       0,NULL,NULL,NULL,NULL
    };
-   ms_wire_alloc(&w2);
+   ms_wire_alloc(&w2, &config);
    w2.inp[0] = 2;
    w2.inp_ports[0] = 0;
    w2.arg[0] = NO_INPUT;
-   ms_add_wire(w2);
+   ms_add_wire(w2, &config);
    static wire w3 = {
       2,NULL,NULL,NULL,NULL
    };
-   ms_wire_alloc(&w3);
+   ms_wire_alloc(&w3, &config);
    w3.inp[0] = 1;
    w3.inp_ports[0] = 0;
-   ms_add_wire(w3);
+   ms_add_wire(w3, &config);
    //set volume
-   ms_set_effect_arg(0, 0, 2.0f);
-   ms_set_output_module(0, 0);
-   ms_refresh();
-   ms_run_engine(in, out, 20);
+   ms_set_effect_arg(0, 0, 2.0f, &config);
+   ms_set_output_module(0, 0, &config);
+   ms_refresh(&config);
+   ms_run_engine(in, out, 20, &config);
    CU_ASSERT_TRUE(array_equal(out, ans, 20));
-   ms_exit();
+   ms_exit(&config);
 }
 
 /* The main() function for setting up and running the tests.

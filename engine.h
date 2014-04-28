@@ -26,31 +26,41 @@ typedef struct
 						//argument data can also be placed directly in the buffer by way
 						//of directly editing it in the UI
 
-	void* aux;			//pointer to any auxilary arguments you might need
-	int aux_size;		//size of auxilary buffer
+	void* aux;			//pointer to any global arguments you might need
+	int aux_size;		//size of global buffer in bytes
 	char* name;			//name of the effect
 	void (*effect_function)(float *in, float *out, float *arg, void* aux);
 } effect_module;
+
+typedef struct
+{
+	int effects_alloc;			//size of effect_module buffer
+	int effects_size;			//number of active effects
+	effect_module* effects;		//all active effects
+
+	int run_order_alloc;		//size of run_order buffer
+	int run_order_size;			//number of wire patches
+	wire *run_order;			//how to run the program
+	//the last item in run_order contains which module outputs
+	//to the global JACKD output
+} engine_config;
 
 #define JACKD_INPUT 		-1
 #define JACKD_OUTPUT		-2
 #define NO_INPUT			-3
 
-void ms_init(void);
-void ms_exit(void);
-void ms_refresh();
-int ms_run_engine(float* in, float* out, int len);
-effect_module ms_get_effect(int index);
-void ms_set_effect_arg(int index, int arg_port, float val);
-int ms_get_effect_num(void);
-void ms_add_effect(effect_module e);
-void ms_remove_effect(int index);
-void ms_set_output_module(int module, int port);
-void ms_remove_and_insert_wire(int index, int new_index);
-void ms_sort_wires();
-void ms_add_wire(wire w);
-wire ms_get_wire(int index);
-void ms_remove_wire(int index);
-void ms_wire_alloc(wire *w);
+engine_config ms_init(void);
+void ms_exit(engine_config* config);
+void ms_refresh(engine_config* config);
+int ms_run_engine(float* in, float* out, int len, engine_config* config);
+void ms_set_effect_arg(int index, int arg_port, float val, engine_config* config);
+void ms_add_effect(effect_module e, engine_config* config);
+void ms_remove_effect(int index, engine_config* config);
+void ms_set_output_module(int module, int port, engine_config* config);
+void ms_remove_and_insert_wire(int index, int new_index, engine_config* config);
+void ms_sort_wires(engine_config* config);
+void ms_add_wire(wire w, engine_config* config);
+void ms_remove_wire(int index, engine_config* config);
+void ms_wire_alloc(wire *w, engine_config* config);
 
 #endif
