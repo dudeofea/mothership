@@ -3,6 +3,11 @@
 #define COLOR_FRONT1	1
 #define COLOR_BACK1		0
 
+#define UP_ARROW		65
+#define DOWN_ARROW		66
+#define LEFT_ARROW		68
+#define RIGHT_ARROW		67
+
 window_t selected_window = DETAIL;
 
 void mgui_init(){
@@ -15,10 +20,13 @@ void mgui_init(){
 	start_color();			/* Start color 			*/
 	init_pair(1, COLOR_FRONT1, COLOR_BACK1);
 	init_pair(2, COLOR_BACK1, COLOR_FRONT1);
+	init_pair(3, COLOR_BLUE, COLOR_BACK1);
+	noecho();
 }
 
 void mgui_exit(){
 	getch();
+	echo();
 	endwin();
 }
 
@@ -50,14 +58,50 @@ void draw_toolbar(WINDOW *win){
 	printw("uit ");
 }
 
+void print_fixed_string(char* str, int len){
+	int str_len = strlen(str);
+	if(str_len >= len){
+		for (int i = 0; i < len; ++i)
+		{
+			addch(str[i]);
+		}
+	}else{
+		printw(str);
+		for (int i = 0; i < len - str_len; ++i)
+		{
+			addch(' ');
+		}
+	}
+}
+
 void draw_detailed(engine_config* config){
+	static int sel_i = 0;
+	//get input
+	int key = getch();
+	if(key == 27 && getch() == 91){
+		//arrow key
+		key = getch();
+		switch(key){
+			case UP_ARROW:
+				sel_i--;
+				if(sel_i < 0){ sel_i = config->effects_size - 1; }
+				break;
+			case DOWN_ARROW:
+				sel_i++;
+				if(sel_i >= config->effects_size){ sel_i = 0; }
+				break;
+		}
+	}
 	attron(COLOR_PAIR(1));
 	move(1, 0);
 	addch(ACS_DIAMOND);
 	for (int i = 0; i < config->effects_size; ++i)
 	{
+		if(i == sel_i)
+			attron(COLOR_PAIR(2));
 		move(i+1, 1);
-		printw(config->effects[i].name);
+		print_fixed_string(config->effects[i].name, 17);
+		attron(COLOR_PAIR(1));
 	}
 	//TODO: add wire connection indicators
 	move(LINES - 2, 0);
@@ -76,6 +120,7 @@ void draw_detailed(engine_config* config){
 }
 
 void mgui_refresh(engine_config* config){
+	//draw screen
 	switch(selected_window){
 		case DETAIL:
 			draw_detailed(config);

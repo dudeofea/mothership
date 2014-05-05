@@ -52,6 +52,16 @@ int main(int argc, char const *argv[])
 	};
 	ms_add_effect(e1, &config);
 	ms_add_effect(e2, &config);
+	e2.name = "some_other_effect";
+	ms_add_effect(e2, &config);
+	e2.name = "sine generator";
+	ms_add_effect(e2, &config);
+	e2.name = "wubber";
+	ms_add_effect(e2, &config);
+	e2.name = "crazy effect";
+	ms_add_effect(e2, &config);
+	e2.name = "really really long name";
+	ms_add_effect(e2, &config);
 	/*float in[20], out[20];
 	for (int i = 0; i < 20; ++i)
 	{
@@ -80,7 +90,9 @@ int main(int argc, char const *argv[])
 		printf("run error!\n");
 	}
 	printf("output: "); print_array(out, 20);*/
-	mgui_refresh(&config);
+	while(1){
+		mgui_refresh(&config);
+	}
 	ms_exit(&config);
 	mgui_exit();
 	return 0;
