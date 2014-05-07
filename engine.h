@@ -62,5 +62,6 @@ void ms_sort_wires(engine_config* config);
 void ms_add_wire(wire w, engine_config* config);
 void ms_remove_wire(int index, engine_config* config);
 void ms_wire_alloc(wire *w, engine_config* config);
+int ms_get_assoc_wire_index(int module, engine_config* config);
 
 #endif

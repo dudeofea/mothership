@@ -12,7 +12,7 @@ typedef enum {DETAIL, GRAPH, ALL} window_t;
 
 void mgui_init(void);
 void mgui_exit(void);
-void mgui_refresh(engine_config* config);
+int mgui_refresh(engine_config* config);
 void mgui_select_window(window_t sel);
 
 #endif

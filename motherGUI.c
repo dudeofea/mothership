@@ -8,6 +8,8 @@
 #define LEFT_ARROW		68
 #define RIGHT_ARROW		67
 
+#define KEY_Q			113
+
 window_t selected_window = DETAIL;
 
 void mgui_init(){
@@ -21,11 +23,11 @@ void mgui_init(){
 	init_pair(1, COLOR_FRONT1, COLOR_BACK1);
 	init_pair(2, COLOR_BACK1, COLOR_FRONT1);
 	init_pair(3, COLOR_BLUE, COLOR_BACK1);
-	noecho();
+	noecho();	//remove key stroke echo
+	curs_set(0); //remove cursor
 }
 
 void mgui_exit(){
-	getch();
 	echo();
 	endwin();
 }
@@ -74,10 +76,9 @@ void print_fixed_string(char* str, int len){
 	}
 }
 
-void draw_detailed(engine_config* config){
+void draw_detailed(engine_config* config, int key){
 	static int sel_i = 0;
 	//get input
-	int key = getch();
 	if(key == 27 && getch() == 91){
 		//arrow key
 		key = getch();
@@ -93,22 +94,47 @@ void draw_detailed(engine_config* config){
 		}
 	}
 	attron(COLOR_PAIR(1));
-	move(1, 0);
-	addch(ACS_DIAMOND);
+	//print header
+	move(0, 1); printw(": in    |   out :");
+	//print effect names
 	for (int i = 0; i < config->effects_size; ++i)
 	{
-		if(i == sel_i)
+		if(i == sel_i)	//highlight selected
 			attron(COLOR_PAIR(2));
 		move(i+1, 1);
 		print_fixed_string(config->effects[i].name, 17);
 		attron(COLOR_PAIR(1));
 	}
 	//TODO: add wire connection indicators
+	int w_i = ms_get_assoc_wire_index(sel_i, config);
+	//move(0, 50);
+	//printw("%d", w_i);
+	//print connections
+	if(w_i >= 0){
+		//inputs
+		for (int i = 0; i < config->effects[sel_i].inp_ports; ++i)
+		{
+			if(config->run_order[w_i].inp[i] >= 0){
+				move(i+1, 0);
+				addch(ACS_DIAMOND);
+			}else if(config->run_order[w_i].inp[i] == JACKD_INPUT){
+				move(0, 0);
+				addch(ACS_DIAMOND);
+			}else if(config->run_order[w_i].inp[i] == JACKD_OUTPUT){
+				move(0, 30);
+				addch(ACS_DIAMOND);
+			}
+		}
+		//outputs
+
+	}
+	//print horiz line
 	move(LINES - 2, 0);
 	for (int i = 0; i < COLS; ++i)
 	{
 		addch(113 | A_ALTCHARSET);	//dash
 	}
+	//print vert line
 	int pos = COLS / 4;
 	for (int i = 0; i < LINES - 2; ++i)
 	{
@@ -119,11 +145,14 @@ void draw_detailed(engine_config* config){
 	addch(118 | A_ALTCHARSET); //tee
 }
 
-void mgui_refresh(engine_config* config){
+//draws screen and gets input
+int mgui_refresh(engine_config* config){
+	clear();
 	//draw screen
+	static int key = 0;
 	switch(selected_window){
 		case DETAIL:
-			draw_detailed(config);
+			draw_detailed(config, key);
 			break;
 		case GRAPH:
 			break;
@@ -132,6 +161,12 @@ void mgui_refresh(engine_config* config){
 		default: break;
 	}
 	draw_toolbar(stdscr);
+	//get input
+	key = getch();
+	if(key == 'q'){
+		return -1;
+	}
+	return 0;
 }
 
 void mgui_select_window(window_t sel){

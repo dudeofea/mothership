@@ -369,7 +369,7 @@ void add_wire_to_index(wire w, int index, engine_config* config){
 
 //Finds the index of the wire associated with 
 //a certain module
-int get_assoc_wire_index(int module, engine_config* config){
+int ms_get_assoc_wire_index(int module, engine_config* config){
 	wire* run_order = config->run_order;
 	for (int i = 0; i < config->run_order_size; ++i)
 	{
@@ -395,7 +395,7 @@ void ms_sort_wires(engine_config* config){
 		//must come after all it's inputs
 		for (int j = 0; j < tmp.inp_ports; ++j)
 		{
-			assoc_index = get_assoc_wire_index(run_order[i].inp[j], config);
+			assoc_index = ms_get_assoc_wire_index(run_order[i].inp[j], config);
 			if (insert_index <= assoc_index)
 			{
 				insert_index = assoc_index;
@@ -404,7 +404,7 @@ void ms_sort_wires(engine_config* config){
 		//and arguments
 		for (int j= 0; j < tmp.arg_ports; ++j)
 		{
-			assoc_index = get_assoc_wire_index(run_order[i].arg[j], config);
+			assoc_index = ms_get_assoc_wire_index(run_order[i].arg[j], config);
 			if (insert_index <= assoc_index)
 			{
 				insert_index = assoc_index;
@@ -433,7 +433,7 @@ void ms_add_wire(wire w, engine_config* config){
 		//must come after all it's inputs
 		for (int i = 0; i < tmp.inp_ports; ++i)
 		{
-			assoc_index = get_assoc_wire_index(w.inp[i], config);
+			assoc_index = ms_get_assoc_wire_index(w.inp[i], config);
 			if (insert_index <= assoc_index)
 			{
 				insert_index = assoc_index + 1;
@@ -443,7 +443,7 @@ void ms_add_wire(wire w, engine_config* config){
 		//and arguments
 		for (int i = 0; i < tmp.arg_ports; ++i)
 		{
-			assoc_index = get_assoc_wire_index(w.arg[i], config);
+			assoc_index = ms_get_assoc_wire_index(w.arg[i], config);
 			if (insert_index <= assoc_index)
 			{
 				insert_index = assoc_index + 1;
@@ -483,6 +483,11 @@ void ms_wire_alloc(wire *w, engine_config* config){
 	w->inp_ports = (int*)malloc(i_size * sizeof(int));
 	w->arg = (int*)malloc(a_size * sizeof(int));
 	w->arg_ports = (int*)malloc(a_size * sizeof(int));
+	//close all ports
+	for (int i = 0; i < i_size; ++i)
+	{
+		w->inp[i] = NO_INPUT;
+	}
 	for (int i = 0; i < a_size; ++i)
 	{
 		w->arg[i] = NO_INPUT;

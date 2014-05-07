@@ -62,6 +62,12 @@ int main(int argc, char const *argv[])
 	ms_add_effect(e2, &config);
 	e2.name = "really really long name";
 	ms_add_effect(e2, &config);
+	wire w = {
+		0,NULL,NULL,NULL,NULL
+	};
+	ms_wire_alloc(&w, &config);
+	w.inp[0] = JACKD_INPUT;
+	ms_add_wire(w, &config);
 	/*float in[20], out[20];
 	for (int i = 0; i < 20; ++i)
 	{
@@ -90,9 +96,7 @@ int main(int argc, char const *argv[])
 		printf("run error!\n");
 	}
 	printf("output: "); print_array(out, 20);*/
-	while(1){
-		mgui_refresh(&config);
-	}
+	while(mgui_refresh(&config) >= 0){ ; }
 	ms_exit(&config);
 	mgui_exit();
 	return 0;
