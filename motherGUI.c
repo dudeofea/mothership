@@ -105,11 +105,8 @@ void draw_detailed(engine_config* config, int key){
 		print_fixed_string(config->effects[i].name, 17);
 		attron(COLOR_PAIR(1));
 	}
-	//TODO: add wire connection indicators
+	//print wire connection indicators
 	int w_i = ms_get_assoc_wire_index(sel_i, config);
-	//move(0, 50);
-	//printw("%d", w_i);
-	//print connections
 	if(w_i >= 0){
 		//inputs
 		for (int i = 0; i < config->effects[sel_i].inp_ports; ++i)
@@ -128,6 +125,22 @@ void draw_detailed(engine_config* config, int key){
 		//outputs
 
 	}
+	int pos = COLS / 4;
+	//print current effect module info
+	move(1, pos+2);
+	printw(config->effects[sel_i].name);
+	move(3, pos+2);
+	printw("inputs:     %d", config->effects[sel_i].inp_ports);
+	move(4, pos+2);
+	printw("input size: %d", config->effects[sel_i].inp_size);
+	move(3, pos*2+2);
+	printw("outputs:     %d", config->effects[sel_i].out_ports);
+	move(4, pos*2+2);
+	printw("output size: %d", config->effects[sel_i].out_size);
+	move(3, pos*3+2);
+	printw("argumerts:   %d", config->effects[sel_i].arg_ports);
+	move(4, pos*3+2);
+	printw("argumnt size:%d", 1);
 	//print horiz line
 	move(LINES - 2, 0);
 	for (int i = 0; i < COLS; ++i)
@@ -135,7 +148,6 @@ void draw_detailed(engine_config* config, int key){
 		addch(113 | A_ALTCHARSET);	//dash
 	}
 	//print vert line
-	int pos = COLS / 4;
 	for (int i = 0; i < LINES - 2; ++i)
 	{
 		move(i, pos);
