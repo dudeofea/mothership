@@ -68,6 +68,7 @@ int main(int argc, char const *argv[])
 	ms_wire_alloc(&w, &config);
 	w.inp[0] = JACKD_INPUT;
 	ms_add_wire(w, &config);
+	ms_set_output_module(0, 0, &config);
 	/*float in[20], out[20];
 	for (int i = 0; i < 20; ++i)
 	{
@@ -91,11 +92,11 @@ int main(int argc, char const *argv[])
 	w2.inp[0] = 0;
 	w2.inp_ports[0] = 0;
 	ms_add_wire(w2);
-	ms_set_output_module(1, 0);
 	if(ms_run_engine(in, out) < 0){
 		printf("run error!\n");
 	}
 	printf("output: "); print_array(out, 20);*/
+	//run main gui refresh loop
 	while(mgui_refresh(&config) >= 0){ ; }
 	ms_exit(&config);
 	mgui_exit();

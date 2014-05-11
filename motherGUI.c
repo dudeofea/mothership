@@ -11,6 +11,9 @@
 #define KEY_Q			113
 
 window_t selected_window = DETAIL;
+int redraw = 1;
+int term_height = 0;
+int term_width = 0;
 
 void mgui_init(){
 	initscr();			/* Start curses mode 		*/
@@ -105,6 +108,7 @@ void draw_detailed(engine_config* config, int key){
 		print_fixed_string(config->effects[i].name, 17);
 		attron(COLOR_PAIR(1));
 	}
+	int pos = COLS / 4;
 	//print wire connection indicators
 	int w_i = ms_get_assoc_wire_index(sel_i, config);
 	if(w_i >= 0){
@@ -114,18 +118,47 @@ void draw_detailed(engine_config* config, int key){
 			if(config->run_order[w_i].inp[i] >= 0){
 				move(i+1, 0);
 				addch(ACS_DIAMOND);
+				move(i+8, pos+2);
+				printw("m:%d p:%d", config->run_order[w_i].inp[i], config->run_order[w_i].inp_ports[i]);
 			}else if(config->run_order[w_i].inp[i] == JACKD_INPUT){
 				move(0, 0);
 				addch(ACS_DIAMOND);
-			}else if(config->run_order[w_i].inp[i] == JACKD_OUTPUT){
-				move(0, 30);
-				addch(ACS_DIAMOND);
+				move(i+8, pos+2);
+				printw("m:GLOBAL_INPUT");
+			}else{
+				move(i+8, pos+2);
+				printw("m:NO_INPUT");
 			}
 		}
+		int output_num = 0;
 		//outputs
-
+		for (int i = 0; i < config->run_order_size; i++){
+			int m = config->run_order[i].module;
+			if(m >= 0){
+				//another module
+				for (int j = 0; j < config->effects[m].inp_ports; ++j)
+				{
+					if(config->run_order[i].inp[j] == sel_i){
+						move(m+1, 18);
+						addch(ACS_DIAMOND);
+						move(output_num+8, pos*2+2);
+						printw("m:%d p:%d", config->run_order[i].module, j);
+						output_num++;
+					}
+				}
+			}else{
+				//global output
+				move(0, 18);
+				addch(ACS_DIAMOND);
+				move(output_num+8, pos*2+2);
+				printw("m:GLOBAL_OUTPUT");
+				output_num++;
+			}
+		}
+	}else{
+		move(8, pos+2);
+		printw("NOT SETUP");
 	}
-	int pos = COLS / 4;
 	//print current effect module info
 	move(1, pos+2);
 	printw(config->effects[sel_i].name);
@@ -141,6 +174,13 @@ void draw_detailed(engine_config* config, int key){
 	printw("argumerts:   %d", config->effects[sel_i].arg_ports);
 	move(4, pos*3+2);
 	printw("argumnt size:%d", 1);
+	//print connections
+	move(6, pos+1);
+	printw("-connections");
+	for (int i = pos+13; i < COLS; ++i)
+	{
+		addch('-');
+	}
 	//print horiz line
 	move(LINES - 2, 0);
 	for (int i = 0; i < COLS; ++i)
@@ -153,30 +193,49 @@ void draw_detailed(engine_config* config, int key){
 		move(i, pos);
 		addch(ACS_VLINE);
 	}
+	//print right pointing tee
+	move(6, pos);
+	addch(ACS_LTEE);
+	//print bottom tee
 	move(LINES - 2, pos);
 	addch(118 | A_ALTCHARSET); //tee
 }
 
 //draws screen and gets input
 int mgui_refresh(engine_config* config){
-	clear();
-	//draw screen
 	static int key = 0;
-	switch(selected_window){
-		case DETAIL:
-			draw_detailed(config, key);
-			break;
-		case GRAPH:
-			break;
-		case ALL:
-			break;
-		default: break;
+	if(redraw){
+		clear();
+		//draw screen
+		switch(selected_window){
+			case DETAIL:
+				draw_detailed(config, key);
+				break;
+			case GRAPH:
+				break;
+			case ALL:
+				break;
+			default: break;
+		}
+		draw_toolbar(stdscr);
+		redraw = 0;
+	}else{
+		//check for resize
+		int h, w;
+		getmaxyx(stdscr, h, w);
+		if(h != term_height || w != term_width){
+			term_height = h;
+			term_width = w;
+			redraw = 1;
+		}
 	}
-	draw_toolbar(stdscr);
 	//get input
 	key = getch();
 	if(key == 'q'){
 		return -1;
+	}
+	if(key > 0){
+		redraw = 1;
 	}
 	return 0;
 }
