@@ -1,6 +1,7 @@
 #include "motherGUI.h"
 
 #define COLOR_FRONT1	1
+#define COLOR_FRONT2	5
 #define COLOR_BACK1		0
 
 #define UP_ARROW		65
@@ -9,11 +10,19 @@
 #define RIGHT_ARROW		67
 
 #define KEY_Q			113
+#define KEY_ENTR		13
+
+#define EDIT_NAME		1
+#define EDIT_INP		2
+#define EDIT_OUT		3
+#define EDIT_ARG		4
 
 window_t selected_window = DETAIL;
 int redraw = 1;
 int term_height = 0;
 int term_width = 0;
+int edit = 0;	//1:name, 2:inputs, 3:outputs, 4:arguments
+int key_up = 0;
 
 void mgui_init(){
 	initscr();			/* Start curses mode 		*/
@@ -25,7 +34,8 @@ void mgui_init(){
 	start_color();			/* Start color 			*/
 	init_pair(1, COLOR_FRONT1, COLOR_BACK1);
 	init_pair(2, COLOR_BACK1, COLOR_FRONT1);
-	init_pair(3, COLOR_BLUE, COLOR_BACK1);
+	init_pair(3, COLOR_BACK1, COLOR_FRONT2);
+	nonl();
 	noecho();	//remove key stroke echo
 	curs_set(0); //remove cursor
 }
@@ -81,18 +91,39 @@ void print_fixed_string(char* str, int len){
 
 void draw_detailed(engine_config* config, int key){
 	static int sel_i = 0;
+	static int sel_m = 0;	//selected input/output/arg when editing
 	//get input
 	if(key == 27 && getch() == 91){
 		//arrow key
 		key = getch();
 		switch(key){
 			case UP_ARROW:
-				sel_i--;
-				if(sel_i < 0){ sel_i = config->effects_size - 1; }
+				if(!edit){
+					sel_i--;
+					if(sel_i < 0){ sel_i = config->effects_size - 1; }
+				}else{
+					sel_m--;
+				}
 				break;
 			case DOWN_ARROW:
-				sel_i++;
-				if(sel_i >= config->effects_size){ sel_i = 0; }
+				if(!edit){
+					sel_i++;
+					if(sel_i >= config->effects_size){ sel_i = 0; }
+				}else{
+					sel_m++;
+				}
+				break;
+			case RIGHT_ARROW:
+				if(edit > 0){
+					edit++;
+					if(edit > 4){ edit = 1; }
+				}
+				break;
+			case LEFT_ARROW:
+				if(edit > 0){
+					edit--;
+					if(edit <= 0){ edit = 4; }
+				}
 				break;
 		}
 	}
@@ -115,6 +146,11 @@ void draw_detailed(engine_config* config, int key){
 		//inputs
 		for (int i = 0; i < config->effects[sel_i].inp_ports; ++i)
 		{
+			attron(COLOR_PAIR(1));
+			if (edit == EDIT_INP)
+			{
+				attron(COLOR_PAIR(3));
+			}
 			if(config->run_order[w_i].inp[i] >= 0){
 				move(i+1, 0);
 				addch(ACS_DIAMOND);
@@ -133,6 +169,11 @@ void draw_detailed(engine_config* config, int key){
 		int output_num = 0;
 		//outputs
 		for (int i = 0; i < config->run_order_size; i++){
+			attron(COLOR_PAIR(1));
+			if (edit == EDIT_OUT)
+			{
+				attron(COLOR_PAIR(3));
+			}
 			int m = config->run_order[i].module;
 			if(m >= 0){
 				//another module
@@ -148,11 +189,36 @@ void draw_detailed(engine_config* config, int key){
 				}
 			}else{
 				//global output
-				move(0, 18);
+				if(config->run_order[i].inp[0] == sel_i){
+					move(0, 18);
+					addch(ACS_DIAMOND);
+					move(output_num+8, pos*2+2);
+					printw("m:GLOBAL_OUTPUT");
+					output_num++;
+				}
+			}
+		}
+		//arguments
+		for (int i = 0; i < config->effects[sel_i].arg_ports; ++i)
+		{
+			attron(COLOR_PAIR(1));
+			if (edit == EDIT_ARG)
+			{
+				attron(COLOR_PAIR(3));
+			}
+			if(config->run_order[w_i].arg[i] >= 0){
+				move(i+1, 0);
 				addch(ACS_DIAMOND);
-				move(output_num+8, pos*2+2);
-				printw("m:GLOBAL_OUTPUT");
-				output_num++;
+				move(i+8, pos*3+2);
+				printw("m:%d p:%d", config->run_order[w_i].arg[i], config->run_order[w_i].arg_ports[i]);
+			}else if(config->run_order[w_i].arg[i] == JACKD_INPUT){
+				move(0, 0);
+				addch(ACS_DIAMOND);
+				move(i+8, pos*3+2);
+				printw("m:GLOBAL_INPUT");
+			}else{
+				move(i+8, pos*3+2);
+				printw("m:NO_INPUT");
 			}
 		}
 	}else{
@@ -160,8 +226,14 @@ void draw_detailed(engine_config* config, int key){
 		printw("NOT SETUP");
 	}
 	//print current effect module info
+	attron(COLOR_PAIR(1));
 	move(1, pos+2);
+	if (edit == EDIT_NAME)
+	{
+		attron(COLOR_PAIR(3));
+	}
 	printw(config->effects[sel_i].name);
+	attron(COLOR_PAIR(1));
 	move(3, pos+2);
 	printw("inputs:     %d", config->effects[sel_i].inp_ports);
 	move(4, pos+2);
@@ -199,6 +271,9 @@ void draw_detailed(engine_config* config, int key){
 	//print bottom tee
 	move(LINES - 2, pos);
 	addch(118 | A_ALTCHARSET); //tee
+
+	move(10, 10);
+	printw("k:%d e:%d", key, edit);
 }
 
 //draws screen and gets input
@@ -229,11 +304,20 @@ int mgui_refresh(engine_config* config){
 			redraw = 1;
 		}
 	}
+	key = 0;
 	//get input
 	key = getch();
 	if(key == 'q'){
 		return -1;
 	}
+	else if(key == KEY_ENTR){
+		if(edit){
+			edit = 0;
+		}else{
+			edit = 1;
+		}
+	}
+	//redraw screen
 	if(key > 0){
 		redraw = 1;
 	}

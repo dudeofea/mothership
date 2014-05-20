@@ -68,7 +68,13 @@ int main(int argc, char const *argv[])
 	ms_wire_alloc(&w, &config);
 	w.inp[0] = JACKD_INPUT;
 	ms_add_wire(w, &config);
-	ms_set_output_module(0, 0, &config);
+	wire w2 = {
+		1, NULL, NULL, NULL, NULL
+	};
+	ms_wire_alloc(&w2, &config);
+	w2.inp[0] = 0;
+	ms_add_wire(w2, &config);
+	ms_set_output_module(1, 0, &config);
 	/*float in[20], out[20];
 	for (int i = 0; i < 20; ++i)
 	{

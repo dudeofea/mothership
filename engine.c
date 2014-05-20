@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include "engine.h"
 
-/*int effects_alloc;			//size of effect_module buffer
+/*int effects_alloc;		//size of effect_module buffer
 int effects_size;			//number of active effects
 effect_module *effects;		//all active effects
 
