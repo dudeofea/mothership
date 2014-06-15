@@ -6,7 +6,7 @@ all:
 	$(CC) $(CFLAGS) -c effects.c -o effects.o
 	$(CC) $(CFLAGS) -c motherGUI.c -o motherGUI.o
 	$(CC) $(CFLAGS) -c mothership.c -o mothership.o
-	$(CC) $(CFLAGS) -o mothership *.o -lm -lfftw3 -lncurses
+	$(CC) $(CFLAGS) -o mothership *.o -lm -lfftw3 -lncurses -ljack
 	rm -rf *.o
 old:
 	$(CC) $(CFLAGS) -c effects.c -o effects.o

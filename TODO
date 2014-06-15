@@ -5,11 +5,7 @@ TODO LIST:
 
 ----engine.c-----
 * add mutex to protect run from add/rm functions
-* FIX SEGFAULTS!!!
 
 ----effects.c----
 * find fundamental freq
 * add tuner effect
-
---jack_client.c--
-* mess around with buffer settings
