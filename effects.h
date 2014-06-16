@@ -9,7 +9,6 @@
 //#define BUFFER_LEN 20
 
 void init_effects(engine_config* config);
-void myeffect1(float *in, float *out, float *arg, void* aux);
 void myeffect2(float *in, float *out, float *arg, void* aux);
 void print_array(float *arr, int size);
 

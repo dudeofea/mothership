@@ -165,6 +165,8 @@ void draw_detailed(engine_config* config, int key){
 				list_i = 0;
 			}
 			break;
+		case EDIT_ARG:
+			break;
 		}
 	}
 	attron(COLOR_PAIR(1));
@@ -272,7 +274,7 @@ void draw_detailed(engine_config* config, int key){
 				printw("m:GLOBAL_INPUT");
 			}else{
 				move(i+8, pos*3+2);
-				printw("m:NO_INPUT");
+				printw("m:NO_INPUT	%.2lf", config->effects[sel_i].arg_buf[i]);
 			}
 		}
 	}else{
