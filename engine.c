@@ -237,9 +237,12 @@ void ms_add_effect(effect_module e, engine_config* config){
 	//create new global buffer so nothing conflicts
 	config->effects[config->effects_size].aux = malloc(config->effects[config->effects_size].aux_size);
 	//copy over init values
-	if (config->effects[config->effects_size].aux != NULL)
-	{
-		memcpy(config->effects[config->effects_size].aux, e.aux, e.aux_size);
+	if (config->effects[config->effects_size].aux != NULL){
+		//copy from old values or set to 0
+		if(e.aux != NULL)
+			memcpy(config->effects[config->effects_size].aux, e.aux, e.aux_size);
+		else
+			memset(config->effects[config->effects_size].aux, 0, e.aux_size);
 	}
 	//clear other buffers just in case
 	config->effects[config->effects_size].inp_buf = NULL;

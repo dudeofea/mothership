@@ -108,37 +108,52 @@ void draw_detailed(engine_config* config, int key){
 			if(!edit){
 				sel_i--;
 				if(sel_i < 0){ sel_i = config->effects_size - 1; }
-			}else if (list_i < 0){
-				//pick in detail pane
-				sel_m--;
-				if(sel_m < 0){ sel_m = sel_m_max - 1; }
-			}else{
-				//pick in list pane
-				list_i--;
-				if(list_i < 0){ list_i = config->effects_size; }
+			}else if(edit == EDIT_INP){
+				if (list_i < 0){
+					//pick in detail pane
+					sel_m--;
+					if(sel_m < 0){ sel_m = sel_m_max - 1; }
+				}else{
+					//pick in list pane
+					list_i--;
+					if(list_i < 0){ list_i = config->effects_size; }
+				}
+			}else if(edit == EDIT_ARG){
+				if(list_i && config->run_order[w_i].arg[sel_m] == NO_INPUT){
+					config->effects[sel_i].arg_buf[sel_m]++;
+				}
 			}
 			break;
 		case DOWN_ARROW:
 			if(!edit){
 				sel_i++;
 				if(sel_i >= config->effects_size){ sel_i = 0; }
-			}else if (list_i < 0){
-				sel_m++;
-				if(sel_m >= sel_m_max){ sel_m = 0; }
-			}else{
-				//pick in list pane
-				list_i++;
-				if(list_i > config->effects_size){ list_i = 0; }
+			}else if(edit == EDIT_INP){
+				if (list_i < 0){
+					//pick in detail pane
+					sel_m++;
+					if(sel_m >= sel_m_max){ sel_m = 0; }
+				}else{
+					//pick in list pane
+					list_i++;
+					if(list_i > config->effects_size){ list_i = 0; }
+				}
+			}else if(edit == EDIT_ARG){
+				if(list_i && config->run_order[w_i].arg[sel_m] == NO_INPUT){
+					config->effects[sel_i].arg_buf[sel_m]--;
+				}
 			}
 			break;
 		case RIGHT_ARROW:
 			if(edit > 0){
+				sel_m = 0;
 				edit++;
 				if(edit > edit_max){ edit = 1; }
 			}
 			break;
 		case LEFT_ARROW:
 			if(edit > 0){
+				sel_m = 0;
 				edit--;
 				if(edit <= 0){ edit = edit_max; }
 			}
@@ -147,6 +162,7 @@ void draw_detailed(engine_config* config, int key){
 	}else if(key == KEY_ENTR){
 		switch(edit){
 		case EDIT_INP:
+			//on second press
 			if(list_i >= 0){
 				if(w_i >= 0){	//if has a wire
 					//TODO: add as input
@@ -161,12 +177,19 @@ void draw_detailed(engine_config* config, int key){
 					}
 				}
 				list_i = -1;
+			//on first press
 			}else{
 				list_i = 0;
 			}
 			break;
 		case EDIT_ARG:
-			break;
+			//on second press
+			if(list_i >= 0){
+				list_i = -1;
+			//on first press
+			}else{
+				list_i = 1;
+			}
 		}
 	}
 	attron(COLOR_PAIR(1));
@@ -258,9 +281,12 @@ void draw_detailed(engine_config* config, int key){
 		for (int i = 0; i < config->effects[sel_i].arg_ports; ++i)
 		{
 			attron(COLOR_PAIR(1));
-			if (edit == EDIT_ARG && sel_m == i)
+			if (edit == EDIT_ARG)
 			{
-				attron(COLOR_PAIR(3));
+				if(sel_m == i)
+					attron(COLOR_PAIR(3));
+				if(list_i > 0)
+					attron(COLOR_PAIR(4));
 			}
 			if(config->run_order[w_i].arg[i] >= 0){
 				move(i+1, 0);
