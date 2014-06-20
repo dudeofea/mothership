@@ -1,7 +1,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include "engine.h"
+
+#define AUDIO_INBUF_SIZE	20480
+#define AUDIO_REFILL_THRESH 4096
 
 /*int effects_alloc;		//size of effect_module buffer
 int effects_size;			//number of active effects
@@ -87,6 +91,21 @@ void print_effect(effect_module e){
 		printf("\n");
 	}
 	printf("Arguments: %d ports\n", e.arg_ports);
+}
+
+//Logging library to track bugs
+void ms_log(char* str){
+	FILE *f = fopen("log.txt", "a");
+	//get time
+	time_t timer;
+	char buffer[25] = {};
+	struct tm* tm_info;
+	time(&timer);
+	tm_info = localtime(&timer);
+	strftime(buffer, 25, "%Y-%m-%d %H:%M:%S", tm_info);
+	fprintf(f, "[%s] %s\n", buffer, str);
+	fclose(f);
+	f = NULL;
 }
 
 //allocates all data used in input/output buffers
@@ -496,4 +515,45 @@ void ms_wire_alloc(wire *w, engine_config* config){
 		w->arg[i] = NO_INPUT;
 		config->effects[w->module].arg_buf[i] = 0.0f;
 	}
+}
+
+//Creates a midi sample object given the attack, decay and release times
+midi_sample ms_create_midi(const char* filename, float attack, float release){
+	midi_sample smp = {0, 0, 0, 0, NULL, NULL, NULL};
+
+	//delete if exists
+	system("rm -f sample.raw");
+
+	//convert to raw 32-bit float
+	char command[200];
+	sprintf(command, "avconv -i %s -ac 1 -f f32le sample.raw -loglevel quiet", filename);
+	system(command);
+
+	int bytes, size;
+	FILE* f = fopen("sample.raw", "rb");
+	if(f == NULL){
+		ms_log("File not found");
+		return smp;
+	}
+	fseek(f, 0L, SEEK_END);
+	size = ftell(f);
+	rewind(f);
+	float* samples = (float*)malloc(size);
+	int pos = 0;
+	float val = 0;
+	//float max = 0.0;
+	while((bytes = fread(&val, sizeof(float), 1, f))){
+		samples[pos] = val;
+		pos++;
+	}
+	//normalize
+
+	//copy to struct
+	smp.attack_l = size / sizeof(float);
+	smp.attack_buf = samples;
+
+	//clean up
+	system("rm -f sample.raw");
+
+	return smp;
 }

@@ -551,6 +551,15 @@ void test_calc3(void)
    ms_exit(&config);
 }
 
+/* Test MIDI creation tool */
+void test_MIDI1(void)
+{
+   engine_config config = ms_init();
+   midi_sample sample = ms_create_midi("../samples/cello_C2.mp3", 0.0, 0.0);
+   printf("attack length: %d\n", sample.attack_l);
+   ms_exit(&config);
+}
+
 /* The main() function for setting up and running the tests.
  * Returns a CUE_SUCCESS on successful running, another
  * CUnit error code on failure.
@@ -582,6 +591,7 @@ int main()
    CU_add_test(pSuite, "test engine calc 1", test_calc1);
    CU_add_test(pSuite, "test engine calc 2", test_calc2);
    CU_add_test(pSuite, "test engine calc 3", test_calc3);
+   CU_add_test(pSuite, "test MIDI sample creation 1", test_MIDI1);
 
    /* Run all tests using the CUnit Basic interface */
    CU_basic_set_mode(CU_BRM_VERBOSE);

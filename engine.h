@@ -1,6 +1,21 @@
 #ifndef _ENGINE_H_
 #define _ENGINE_H_
 
+//Half Step definitions (X is the octave)
+#define NOTE_A(X)	0+(X)*12
+#define NOTE_Bb(X)	1+(X)*12
+#define NOTE_B(X)	2+(X)*12
+#define NOTE_C(X)	3+(X-1)*12
+#define NOTE_Db(X)	4+(X-1)*12
+#define NOTE_D(X)	5+(X-1)*12
+#define NOTE_Eb(X)	6+(X-1)*12
+#define NOTE_E(X)	7+(X-1)*12
+#define NOTE_F(X)	8+(X-1)*12
+#define NOTE_Gb(X)	9+(X-1)*12
+#define NOTE_G(X)	10+(X-1)*12
+#define NOTE_Ab(X)	11+(X-1)*12
+
+//struct definitions
 typedef struct
 {
 	int module;			//The selected module to run
@@ -43,10 +58,24 @@ typedef struct
 	//to the global JACKD output
 } engine_config;
 
+typedef struct $
+{
+	float index;			//position of index in sample
+	int attack_l;		//length of attack buffer
+	int sustain_l;		//length of sustain buffer
+	int release_l;		//length of release buffer
+
+	float *attack_buf;	//attack sample buffer
+	float *sustain_buf;	//sustain sample buffer
+	float *release_buf;	//release sample buffer
+
+} midi_sample;
+
 #define JACKD_INPUT 		-1
 #define JACKD_OUTPUT		-2
 #define NO_INPUT			-3
 
+void ms_log(char* str);
 engine_config ms_init(void);
 void ms_exit(engine_config* config);
 void ms_refresh(engine_config* config);
@@ -61,5 +90,6 @@ void ms_add_wire(wire w, engine_config* config);
 void ms_remove_wire(int index, engine_config* config);
 void ms_wire_alloc(wire *w, engine_config* config);
 int ms_get_assoc_wire_index(int module, engine_config* config);
+midi_sample ms_create_midi(const char* filename, float attack, float release);
 
 #endif
