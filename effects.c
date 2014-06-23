@@ -55,7 +55,7 @@ void init_effects(engine_config* config){
 	};
 	ms_wire_alloc(&w, config);
 	w.arg[0] = NO_INPUT;
-	ms_set_effect_arg(0, 0, 440.0, config);
+	ms_set_effect_arg(0, 0, 1.0, config);
 	ms_add_wire(w, config);
 	//half step converter
 	wire w2 = {
