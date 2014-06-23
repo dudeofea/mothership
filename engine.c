@@ -518,8 +518,8 @@ void ms_wire_alloc(wire *w, engine_config* config){
 }
 
 //Creates a midi sample object given the attack, decay and release times
-midi_sample ms_create_midi(const char* filename, float attack, float release){
-	midi_sample smp = {0, 0, 0, 0, NULL, NULL, NULL};
+midi_sample ms_create_midi(const char* filename, float start, float end){
+	midi_sample smp = {0, 0, NULL};
 
 	//delete if exists
 	system("rm -f sample.raw");
@@ -546,11 +546,11 @@ midi_sample ms_create_midi(const char* filename, float attack, float release){
 		samples[pos] = val;
 		pos++;
 	}
-	//normalize
+	//TODO: normalize
 
 	//copy to struct
-	smp.attack_l = size / sizeof(float);
-	smp.attack_buf = samples;
+	smp.sample_l = size / sizeof(float);
+	smp.sample_buf = samples;
 
 	//clean up
 	system("rm -f sample.raw");

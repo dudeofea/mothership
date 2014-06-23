@@ -61,13 +61,8 @@ typedef struct
 typedef struct $
 {
 	float index;			//position of index in sample
-	int attack_l;		//length of attack buffer
-	int sustain_l;		//length of sustain buffer
-	int release_l;		//length of release buffer
-
-	float *attack_buf;	//attack sample buffer
-	float *sustain_buf;	//sustain sample buffer
-	float *release_buf;	//release sample buffer
+	int sample_l;		//length of attack buffer
+	float *sample_buf;	//attack sample buffer
 
 } midi_sample;
 
@@ -90,6 +85,6 @@ void ms_add_wire(wire w, engine_config* config);
 void ms_remove_wire(int index, engine_config* config);
 void ms_wire_alloc(wire *w, engine_config* config);
 int ms_get_assoc_wire_index(int module, engine_config* config);
-midi_sample ms_create_midi(const char* filename, float attack, float release);
+midi_sample ms_create_midi(const char* filename, float start, float end);
 
 #endif

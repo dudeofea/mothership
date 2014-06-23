@@ -249,10 +249,21 @@ void draw_detailed(engine_config* config, int key){
 			}
 			int m = config->run_order[i].module;
 			if(m >= 0){
-				//another module
+				//another module (input)
 				for (int j = 0; j < config->effects[m].inp_ports; ++j)
 				{
 					if(config->run_order[i].inp[j] == sel_i){
+						move(m+1, 18);
+						addch(ACS_DIAMOND);
+						move(output_num+8, pos*2+2);
+						printw("m:%d p:%d", config->run_order[i].module, j);
+						output_num++;
+					}
+				}
+				//another module (argument)
+				for (int j = 0; j < config->effects[m].arg_ports; ++j)
+				{
+					if(config->run_order[i].arg[j] == sel_i){
 						move(m+1, 18);
 						addch(ACS_DIAMOND);
 						move(output_num+8, pos*2+2);
@@ -292,7 +303,7 @@ void draw_detailed(engine_config* config, int key){
 				move(i+1, 0);
 				addch(ACS_DIAMOND);
 				move(i+8, pos*3+2);
-				printw("m:%d p:%d", config->run_order[w_i].arg[i], config->run_order[w_i].arg_ports[i]);
+				printw("m:%d p:%d	%.2lf", config->run_order[w_i].arg[i], config->run_order[w_i].arg_ports[i], config->effects[sel_i].arg_buf[i]);
 			}else if(config->run_order[w_i].arg[i] == JACKD_INPUT){
 				move(0, 0);
 				addch(ACS_DIAMOND);
