@@ -8,21 +8,33 @@ jack_port_t *input_port;
 jack_port_t *output_port;
 
 int process (jack_nframes_t nframes, void *arg);
+jack_client_t * setup_jackd(engine_config* config);
 
 int main(int argc, char const *argv[])
 {
 	mgui_init();
 	engine_config config = ms_init();
 	init_effects(&config);
+	jack_client_t *client = setup_jackd(&config);
+	/* Run main gui refresh loop */
+	while(mgui_refresh(&config) >= 0){ ; }
+	jack_client_close(client);
+	ms_exit(&config);
+	mgui_exit();
+	return 0;
+}
+
+//setup jackd client
+jack_client_t *setup_jackd(engine_config* config){
+	jack_client_t *client;
 	/* Setup jack client */
 	//try to become a client of the JACK server
-	jack_client_t *client;
 	const char **ports;
 	jack_status_t err;
 	client = jack_client_open ("pedal", JackNullOption, &err);
 	if(client == NULL){
 		fprintf (stderr, "jack server not running?\n");
-		return 1;
+		exit(1);
 	}
 	//bind middle man callback
 	jack_set_process_callback (client, process, &config);
@@ -32,7 +44,7 @@ int main(int argc, char const *argv[])
 	//activate client
 	if (jack_activate (client)) {
 		fprintf (stderr, "cannot activate client");
-		return 1;
+		exit(1);
 	}
 	//connect the ports
 	if ((ports = jack_get_ports (client, NULL, NULL, JackPortIsPhysical|JackPortIsOutput)) == NULL) {
@@ -51,13 +63,8 @@ int main(int argc, char const *argv[])
 	if (jack_connect (client, jack_port_name (output_port), ports[0])) {
 		fprintf (stderr, "cannot connect output ports\n");
 	}
-		free (ports);
-	/* Run main gui refresh loop */
-	while(mgui_refresh(&config) >= 0){ ; }
-	jack_client_close(client);
-	ms_exit(&config);
-	mgui_exit();
-	return 0;
+	free (ports);
+	return client;
 }
 
 //process jackd input samples and output samples
