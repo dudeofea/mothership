@@ -1,2 +1,4 @@
 TODO LIST:
 - Control effects using RPi via wifi
+- Add function to init modules
+- Remove arguments entirely
