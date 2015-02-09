@@ -58,9 +58,9 @@ typedef struct
 	//to the global JACKD output
 } engine_config;
 
-typedef struct $
+typedef struct
 {
-	float index;			//position of index in sample
+	float index;		//position of index in sample
 	int sample_l;		//length of attack buffer
 	float *sample_buf;	//attack sample buffer
 

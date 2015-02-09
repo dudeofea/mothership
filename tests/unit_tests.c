@@ -556,7 +556,7 @@ void test_MIDI1(void)
 {
    engine_config config = ms_init();
    midi_sample sample = ms_create_midi("../samples/cello_C2.mp3", 0.0, 0.0);
-   printf("attack length: %d\n", sample.attack_l);
+   printf("attack length: %d\n", sample.sample_l);
    ms_exit(&config);
 }
 

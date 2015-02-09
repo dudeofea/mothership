@@ -7,18 +7,9 @@
 #define AUDIO_INBUF_SIZE	20480
 #define AUDIO_REFILL_THRESH 4096
 
-/*int effects_alloc;		//size of effect_module buffer
-int effects_size;			//number of active effects
-effect_module *effects;		//all active effects
-
-int run_order_alloc;		//size of run_order buffer
-int run_order_size;			//number of wire patches
-wire *run_order;			//how to run the program
-//the last item in run_order contains which module outputs
-//to the global JACKD output*/
-
+//print wire info
 void print_wire(wire w, engine_config* config){
-	if (w.module < 0)
+	if (w.module < 0)	//if module is global output
 	{
 		if (w.module == JACKD_OUTPUT)
 			printf("Module: Global Output\n");
@@ -30,7 +21,7 @@ void print_wire(wire w, engine_config* config){
 			printf("Inputs: %d[%d]", w.inp[0], w.inp_ports[0]);
 		}
 		printf("Arguments: None\n");
-	}else{
+	}else{				//if module is an actual module
 		printf("Module: %d\n", w.module);
 		effect_module tmp = config->effects[w.module];
 		printf("Inputs: ");
@@ -59,6 +50,7 @@ void print_wire(wire w, engine_config* config){
 	}
 }
 
+//print all wire infos
 void print_all_wires(engine_config* config){
 	for (int i = 0; i < config->run_order_size; ++i)
 	{
@@ -66,6 +58,7 @@ void print_all_wires(engine_config* config){
 	}
 }
 
+//print info about an effect
 void print_effect(effect_module e){
 	printf("-----%s-----\n", e.name);
 	printf("Input: %d ports, %d samples each\n", e.inp_ports, e.inp_size);
