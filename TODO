@@ -1,8 +1,2 @@
 TODO LIST:
-
---unit_tests.c---
-* Add test for adding same effect multiple times, with a global buf
-
-----effects.c----
-* find fundamental freq
-* add tuner effect
+- Control effects using RPi via wifi

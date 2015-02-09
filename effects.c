@@ -55,14 +55,14 @@ void init_effects(engine_config* config){
 	ms_add_effect(e2, config);
 	sequence s = {200.0, 0, 0, 8, NULL};
 	s.notes = malloc(8*sizeof(int));
-	s.notes[0] = NOTE_Db(3);
-	s.notes[1] = NOTE_G(2);
-	s.notes[2] = NOTE_A(2);
-	s.notes[3] = NOTE_E(2);
-	s.notes[4] = NOTE_Db(3);
-	s.notes[5] = NOTE_G(2);
-	s.notes[6] = NOTE_A(2);
-	s.notes[7] = NOTE_E(2);
+	s.notes[0] = NOTE_Db(4);
+	s.notes[1] = NOTE_G(3);
+	s.notes[2] = NOTE_A(3);
+	s.notes[3] = NOTE_E(3);
+	s.notes[4] = NOTE_Db(4);
+	s.notes[5] = NOTE_G(3);
+	s.notes[6] = NOTE_A(3);
+	s.notes[7] = NOTE_E(3);
 	effect_module e3 = {
 		1, 0, 1,
 		1, 0,
@@ -100,8 +100,21 @@ void init_effects(engine_config* config){
 	ms_set_output_module(0, 0, config);
 }
 
+//scale traverse (A Pentatonic)
+//for the trigger: 0 -> not running, 1 -> begin running, 2 -> is running
+//arguments: [Start note], [End note], [BPM], [trigger boolean]
+//aux buffer: [Current Note (int)], [hold (float)]
+/*void pent_scale_traverse(float *in, float *out, float *arg, void *aux){
+	if (trigger == 1)
+	{
+		//start the traversal
+	}else if(trigger == 2){
+		//do the traversal
+	}
+}*/
+
 //sequencer
-//arguments: [BPM (float)]
+//arguments: [BPM]
 //aux buffer: [index (float)] [hold (float)] [sequence length (int)] [sequence notes (ints)]
 void sequencer_effect(float *in, float *out, float *arg, void *aux){
 	sequence* s = (sequence*)aux;
