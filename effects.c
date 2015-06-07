@@ -135,6 +135,7 @@ void sequencer_effect(float *in, float *out, float *arg, void *aux){
 //sine wave generator
 //argments: [freq in Hz]
 //aux buffer: [index (float)]
+//global variables: [sine_wave (float)]
 void sine_wave_effect(float *in, float *out, float *arg, void *aux){
 	float index = ((float*)aux)[0];	//get index value
 	for (int i = 0; i < BUFFER_LEN; ++i)
