@@ -1,3 +1,4 @@
+#!/usr/bin/python
 #
 #	BLE Module Controller Server
 #
@@ -28,6 +29,9 @@ class BLEController(object):
 		self.gatt.sendline('char-read-hnd 0x0012')
 		self.gatt.expect('.*Characteristic value/descriptor: ')
 		return self.gatt.readline().replace('\n', '').split()
+	def decompress_values(self, hex_msg):
+		binstr = [bin(int(x, 16))[2:].zfill(8) for x in hex_msg]
+		return ''.join(binstr)[10:20]
 	def write(self, msg):
 		hex_msg = str2hex(msg)
 		self.write_hex(hex_msg)
@@ -36,5 +40,5 @@ class BLEController(object):
 
 cont = BLEController(mac_addr)
 cont.write_hex('01' + '10' + '05' + str2hex('sine generator'))
-#while True:
-#	print cont.read()
+while True:
+	print int("0b"+cont.decompress_values(cont.read_hex()), 2)

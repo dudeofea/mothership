@@ -1,27 +1,105 @@
+//usleep fix
+#define _BSD_SOURCE
+
 #include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
 #include <jack/jack.h>
 #include "engine.h"
-#include "motherGUI.h"
 #include "effects.h"
+#include "ble.h"
 
 jack_port_t *input_port;
 jack_port_t *output_port;
 
+void process_cmds();
 int process (jack_nframes_t nframes, void *arg);
 jack_client_t * setup_jackd(engine_config* config);
 
 int main(int argc, char const *argv[])
 {
-	mgui_init();
+	// init
 	engine_config config = ms_init();
 	init_effects(&config);
 	jack_client_t *client = setup_jackd(&config);
-	/* Run main gui refresh loop */
-	while(mgui_refresh(&config) >= 0){ ; }
+	// Run main refresh loop
+	process_cmds(&config);
+	// exit
 	jack_client_close(client);
 	ms_exit(&config);
-	mgui_exit();
 	return 0;
+}
+
+//wait for commands and react accordingly by
+//setting parameters, adding effects, etc
+void process_cmds(engine_config* config){
+	int done = 0;
+	//int connected = 0;
+	unsigned char buf[100];
+	unsigned int vals[10];
+	ble_connect("D0:39:72:C3:AC:AA");
+	int count = 0;
+	while(!done){
+		//get input
+		int len = ble_char_read(0x0012, buf);
+		if(len > 0){
+			memset(vals, 0, sizeof(vals));
+			int bitcount = 8;	//bit count in first byte
+			int bufoff = 0;
+			printf("[%d] ", count);
+			for (int i = 0; i < 10; ++i)
+			{
+				vals[i] |= (buf[i+bufoff] & ((1<<bitcount)-1));
+				vals[i] |= ((buf[i+1+bufoff]&0xFF)>>(bitcount+8-10))<<bitcount;
+				bitcount = 8 + bitcount - 10;
+				if(bitcount <= 0){
+					bitcount = 8;
+					bufoff++;
+				}
+				printf("%d ", vals[i]);
+			}
+			printf("\n");
+			count++;
+			//set the value
+			for (int i = 0; i < config->effects[0].arg_ports; ++i)
+			{
+				ms_set_effect_arg(0, i, (float)vals[i], config);
+			}
+			/*//edit an effect's parameters
+			if(strncmp(cmd_buf, "edit ", 5) == 0){
+				int id, param;
+				float val;
+				sscanf(&cmd_buf[5], "%d %d %f", &id, &param, &val);
+				printf("id: %d param:%d val:%f\n", id, param, val);
+				//error checks
+				if(id < 0 || id >= config->effects_size){
+					return;
+				}
+				if(param < 0 || param >= config->effects[id].arg_ports){
+					return;
+				}
+				//set the value
+				ms_set_effect_arg(id, param, val, config);
+			//get setup info
+			}else if(strncmp(cmd_buf, "info", 4) == 0){
+				//printf("effects: %d\n", config->effects_size);
+				for (int i = 0; i < config->effects_size; ++i)
+				{
+					printf("id: %d, inports: %d, outports: %d, argports: %d, name: %s\n",
+						i,
+						config->effects[i].inp_ports,
+						config->effects[i].out_ports,
+						config->effects[i].arg_ports,
+						config->effects[i].name);
+				}
+			//ditch
+			}else if(strncmp(cmd_buf, "exit", 4) == 0){
+				return;
+			}*/
+		};
+		usleep(100);
+	}
 }
 
 //setup jackd client
@@ -37,7 +115,7 @@ jack_client_t *setup_jackd(engine_config* config){
 		exit(1);
 	}
 	//bind middle man callback
-	jack_set_process_callback (client, process, &config);
+	jack_set_process_callback (client, process, config);
 	//create two ports
 	input_port = jack_port_register (client, "input", JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
 	output_port = jack_port_register (client, "output", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);

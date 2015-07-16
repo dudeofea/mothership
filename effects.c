@@ -1,10 +1,14 @@
 #include <stdlib.h>
+#include <string.h>
 #include "effects.h"
 
 #define SINE_WAVE_LEN 2048
 #define HALF_STEP_LENGTH 87
 float sine_wave[SINE_WAVE_LEN] = {};
 float half_step[HALF_STEP_LENGTH] = {};
+
+int index = 0;
+float hold = 0.0;
 
 typedef struct
 {
@@ -13,10 +17,19 @@ typedef struct
 	int *notes;
 }sequence;
 
+void beat_freq_effect(float *in, float *out, float *arg, void *aux);
+void chordifier(float *in, float *out, float *arg, void *aux);
 void sequencer_effect(float *in, float *out, float *arg, void *aux);
 void sine_wave_effect(float *in, float *out, float *arg, void* aux);
 void sample_player(float *in, float *out, float *arg, void *aux);
 void note2freq(float *in, float *out, float *arg, void *aux);
+void log_array(float *arr, int size);
+
+//pitch selector
+void pitch_effect(float *in, float *out, float *arg, void *aux){
+	out[0] = 2.0*arg[0];
+	//out[0] = (float)half_step[(int)(arg[0] / 16.0)];
+}
 
 void init_effects(engine_config* config){
 	//init sine buffer
@@ -35,16 +48,40 @@ void init_effects(engine_config* config){
 	if(sample.attack_l == 0){
 		ms_log("sample empty");
 	}*/
-	effect_module e1 = {
-		1, 1, 1,
-		1, BUFFER_LEN,
+	/*effect_module e2 = {
+		0, 1, 10,				//in, out, arg
+		0, 1,			//in size, out size
 		NULL, NULL, NULL,
 		NULL, sizeof(float),
-		"sine_gen",
-		sine_wave_effect
+		"sequencer",
+		sequencer_effect
+	};
+	wire w2 = {
+		0,NULL,NULL,NULL,NULL
+	};
+	ms_add_effect(e2, config);
+	ms_wire_alloc(&w2, config);
+	ms_add_wire(w2, config);*/
+	//sine wave generator
+	effect_module e1 = {
+		0, 1, 10,				//in, out, arg
+		0, BUFFER_LEN,			//in size, out size
+		NULL, NULL, NULL,
+		NULL, 4*sizeof(float),
+		"sine generator",
+		chordifier
+	};
+	wire w = {
+		0,NULL,NULL,NULL,NULL
 	};
 	ms_add_effect(e1, config);
-	effect_module e2 = {
+	ms_wire_alloc(&w, config);
+	//w.arg[0] = 0;
+	//w.arg_ports[0] = 0;
+	ms_add_wire(w, config);
+	ms_set_effect_arg(0, 0, 200.0, config);
+	ms_set_output_module(0, 0, config);
+	/*effect_module e2 = {
 		0, 1, 1,
 		0, 1,
 		NULL, NULL, NULL,
@@ -72,14 +109,6 @@ void init_effects(engine_config* config){
 		sequencer_effect
 	};
 	ms_add_effect(e3, config);
-	//sine gen
-	wire w = {
-		0,NULL,NULL,NULL,NULL
-	};
-	ms_wire_alloc(&w, config);
-	w.arg[0] = 1;
-	ms_set_effect_arg(0, 0, 0.0, config);
-	ms_add_wire(w, config);
 
 	//half step converter
 	wire w2 = {
@@ -96,8 +125,7 @@ void init_effects(engine_config* config){
 	ms_wire_alloc(&w3, config);
 	w3.arg[0] = NO_INPUT;
 	ms_set_effect_arg(2, 0, 100.0, config);
-	ms_add_wire(w3, config);
-	ms_set_output_module(0, 0, config);
+	ms_add_wire(w3, config);*/
 }
 
 //scale traverse (A Pentatonic)
@@ -113,23 +141,84 @@ void init_effects(engine_config* config){
 	}
 }*/
 
+void beat_freq_effect(float *in, float *out, float *arg, void *aux){
+	float index = ((float*)aux)[0];	//get index value
+	float tmp_index = index;
+	float next_index;
+	memset(out, 0, BUFFER_LEN*sizeof(float));
+	float freq = arg[0]/2;
+	for(int j = 0; j < 2; j++){
+		for (int i = 0; i < BUFFER_LEN; ++i)
+		{
+			out[i] += sine_wave[(int)tmp_index];
+			tmp_index += freq*SINE_WAVE_LEN/SAMPLE_RATE;
+			if (tmp_index >= SINE_WAVE_LEN)
+			{
+				tmp_index -= SINE_WAVE_LEN;
+			}
+			if (tmp_index < 0)
+			{
+				tmp_index += SINE_WAVE_LEN;
+			}
+		}
+		freq += (arg[1]-512)/16;
+		//printf("freq: (%i) %f %f\n", j, arg[0]/2, (arg[1]-512)/16);
+		if(j == 0){
+			next_index = tmp_index;
+		}
+		tmp_index = index;
+	}
+	index = next_index;
+    ((float*)aux)[0] = index;	//store index value
+}
+
+void chordifier(float *in, float *out, float *arg, void *aux){
+	memset(out, 0, BUFFER_LEN*sizeof(float));
+	float main_freq = half_step[(int)(arg[0]/16)];
+	float freq = main_freq;
+	for(int j = 0; j < 4; j++){
+		float index = ((float*)aux)[j];	//get index value
+		for (int i = 0; i < BUFFER_LEN; ++i)
+		{
+			out[i] += arg[j+4]/512*sine_wave[(int)index];
+			index += freq*SINE_WAVE_LEN/SAMPLE_RATE;
+			if (index >= SINE_WAVE_LEN)
+			{
+				index -= SINE_WAVE_LEN;
+			}
+			if (index < 0)
+			{
+				index += SINE_WAVE_LEN;
+			}
+		}
+		freq = main_freq + half_step[(int)(arg[j+1]/16)];
+		((float*)aux)[j] = index;	//store index value
+	}
+}
+
 //sequencer
 //arguments: [BPM]
 //aux buffer: [index (float)] [hold (float)] [sequence length (int)] [sequence notes (ints)]
 void sequencer_effect(float *in, float *out, float *arg, void *aux){
-	sequence* s = (sequence*)aux;
-	float max_hold = 60.0 / arg[0];	//max length to hold note
-	s->hold += (float) BUFFER_LEN / SAMPLE_RATE;
-	if (s->hold > max_hold)
+	//static int index = 0;
+	//static float hold = 0;
+	float max_hold = 60.0 / (float)arg[8];	//max length to hold note
+	hold += (float) BUFFER_LEN / SAMPLE_RATE;
+	if (hold > max_hold)
 	{
-		s->hold -= max_hold;
-		s->index++;
-		if (s->index >= s->len)
+		hold -= max_hold;
+		index++;
+		if (index >= 8)
 		{
-			s->index = 0;
+			index = 0;
 		}
 	}
-	out[0] = (float)s->notes[s->index];
+	if(arg[index] > 10){
+		out[0] = (float)half_step[(int)(arg[index] / 16.0)];
+	}else{
+		out[0] = 0.0;
+	}
+	//printf("hold: %f, max_hold: %f, index: %d, out: %f\n", hold, max_hold, index, out[0]);
 }
 
 //sine wave generator
@@ -138,19 +227,33 @@ void sequencer_effect(float *in, float *out, float *arg, void *aux){
 //global variables: [sine_wave (float)]
 void sine_wave_effect(float *in, float *out, float *arg, void *aux){
 	float index = ((float*)aux)[0];	//get index value
-	for (int i = 0; i < BUFFER_LEN; ++i)
-    {
-        out[i] = sine_wave[(int)index];
-        index += arg[0]*SINE_WAVE_LEN/SAMPLE_RATE;
-        if (index >= SINE_WAVE_LEN)
-        {
-            index -= SINE_WAVE_LEN;
-        }
-        if (index < 0)
-        {
-            index += SINE_WAVE_LEN;
-        }
-    }
+	float tmp_index = index;
+	float next_index;
+	memset(out, 0, BUFFER_LEN*sizeof(float));
+	int mul = 1;
+	printf("arg: %f\n", arg[8]);
+	for(int j = 0; j < 6; j++){
+		for (int i = 0; i < BUFFER_LEN; ++i)
+		{
+			out[i] += (arg[j]/1024.0)*sine_wave[(int)tmp_index];
+			tmp_index += mul*arg[8]*SINE_WAVE_LEN/SAMPLE_RATE;
+			if (tmp_index >= SINE_WAVE_LEN)
+			{
+				tmp_index -= SINE_WAVE_LEN;
+			}
+			if (tmp_index < 0)
+			{
+				tmp_index += SINE_WAVE_LEN;
+			}
+		}
+		mul++;
+		if(j == 0){
+			next_index = tmp_index;
+		}
+		tmp_index = index;
+	}
+	index = next_index;
+    //log_array(out, BUFFER_LEN);
     ((float*)aux)[0] = index;	//store index value
 }
 
@@ -189,4 +292,19 @@ void print_array(float *arr, int size){
 		printf("%f ", arr[i]);
 	}
 	printf("\n");
+}
+
+void log_array(float *arr, int size){
+	FILE *f = fopen("log.txt", "a");
+	if (f == NULL)
+	{
+		printf("Error opening file!\n");
+		exit(1);
+	}
+	for (int i = 0; i < size; ++i)
+	{
+		fprintf(f, "%f\t", arr[i]);
+	}
+	//fprintf(f, "\n");
+	fclose(f);
 }
