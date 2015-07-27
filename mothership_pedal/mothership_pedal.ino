@@ -29,7 +29,6 @@ int read_msg(){
 			}
 			buf[i] = val;
 		}
-		buf[len++] = '\0';
 	}
 	return len;
 }
@@ -105,10 +104,33 @@ void sendPinValues(){
   vals[4] |=  (B11111111) & (pots[3] >> (10-8)) <<(8-8);//8, 10,8*/
   
   //char str[10];
+  //Send VAL command
+  Serial1.write(0x1);
   for(int i = 0; i < 13; i++){
      Serial1.write(vals[i]); 
   }
   Serial1.flush();
+}
+
+//Ask server for module details and display
+//info accordingly
+void initModule(int mod){
+  //send request
+  Serial1.write(2);  //module details req cmd
+  Serial1.write(mod);
+  int len = -1;
+  while(len < 0){
+    len = read_msg();
+  }
+  Serial.println(len, DEC);
+  for(int i = 0; i < 3; i++){
+      Serial.print(buf[i], DEC);
+      Serial.print(' ');
+  }
+  for(int i = 3; i < len; i++){
+    Serial.print(buf[i]);
+  }
+  Serial.print('\n');
 }
 
 void loop() {
@@ -145,7 +167,9 @@ void loop() {
 	analogWrite(4,255 - r);
 	//delay(100);*/
         //Pin testing
-        sendPinValues();
+        //sendPinValues();
+        //Read testing
+        initModule(0);
         delay(50);
 }
 

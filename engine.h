@@ -77,6 +77,7 @@ void ms_refresh(engine_config* config);
 int ms_run_engine(float* in, float* out, int len, engine_config* config);
 void ms_set_effect_arg(int index, int arg_port, float val, engine_config* config);
 void ms_add_effect(effect_module e, engine_config* config);
+void ms_create_effect(int in_p, int ou_p, int ar_p, int in_s, int ou_s, char* name, void (*effect_function)(float *in, float *out, float *arg, void* aux), engine_config* config);
 void ms_remove_effect(int index, engine_config* config);
 void ms_set_output_module(int module, int port, engine_config* config);
 void ms_remove_and_insert_wire(int index, int new_index, engine_config* config);
@@ -84,6 +85,7 @@ void ms_sort_wires(engine_config* config);
 void ms_add_wire(wire w, engine_config* config);
 void ms_remove_wire(int index, engine_config* config);
 void ms_wire_alloc(wire *w, engine_config* config);
+wire ms_create_wire(int module, engine_config* config);
 int ms_get_assoc_wire_index(int module, engine_config* config);
 midi_sample ms_create_midi(const char* filename, float start, float end);
 

@@ -34,7 +34,7 @@ int main(int argc, char const *argv[])
 //wait for commands and react accordingly by
 //setting parameters, adding effects, etc
 void process_cmds(engine_config* config){
-	int done = 0;
+	int done = 0, id;
 	//int connected = 0;
 	unsigned char buf[100];
 	unsigned int vals[10];
@@ -44,27 +44,45 @@ void process_cmds(engine_config* config){
 		//get input
 		int len = ble_char_read(0x0012, buf);
 		if(len > 0){
-			memset(vals, 0, sizeof(vals));
-			int bitcount = 8;	//bit count in first byte
-			int bufoff = 0;
-			printf("[%d] ", count);
-			for (int i = 0; i < 10; ++i)
-			{
-				vals[i] |= (buf[i+bufoff] & ((1<<bitcount)-1));
-				vals[i] |= ((buf[i+1+bufoff]&0xFF)>>(bitcount+8-10))<<bitcount;
-				bitcount = 8 + bitcount - 10;
-				if(bitcount <= 0){
-					bitcount = 8;
-					bufoff++;
-				}
-				printf("%d ", vals[i]);
-			}
-			printf("\n");
-			count++;
-			//set the value
-			for (int i = 0; i < config->effects[0].arg_ports; ++i)
-			{
-				ms_set_effect_arg(0, i, (float)vals[i], config);
+			switch(buf[0]){
+				case 1:		//pedal is sending values
+					memset(vals, 0, sizeof(vals));
+					int bitcount = 8;	//bit count in first byte
+					int bufoff = 1;		//skip the command byte
+					printf("[%d] ", count);
+					for (int i = 0; i < 10; ++i)
+					{
+						vals[i] |= (buf[i+bufoff] & ((1<<bitcount)-1));
+						vals[i] |= ((buf[i+1+bufoff]&0xFF)>>(bitcount+8-10))<<bitcount;
+						bitcount = 8 + bitcount - 10;
+						if(bitcount <= 0){
+							bitcount = 8;
+							bufoff++;
+						}
+						printf("%d ", vals[i]);
+					}
+					printf("\n");
+					count++;
+					//set the value
+					for (int i = 0; i < config->effects[0].arg_ports; ++i)
+					{
+						ms_set_effect_arg(0, i, (float)vals[i], config);
+					}
+					break;
+				case 2:		//pedal is requesting module details
+					//get module id
+					id = buf[1];
+					//response breakdown:
+					//<len> <in_ports> <out_ports> <arg_ports> <name>
+					buf[0] = 0;
+					buf[1] = config->effects[id].inp_ports;
+					buf[2] = config->effects[id].out_ports;
+					buf[3] = config->effects[id].arg_ports;
+					strcpy((char*)buf+4, config->effects[id].name);
+					buf[0] = strlen(config->effects[id].name) + 5;
+					printf("len: %d\n", buf[0]);
+					ble_char_write(0x0016, buf, buf[0]);
+					break;
 			}
 			/*//edit an effect's parameters
 			if(strncmp(cmd_buf, "edit ", 5) == 0){
@@ -98,7 +116,7 @@ void process_cmds(engine_config* config){
 				return;
 			}*/
 		};
-		usleep(100);
+		usleep(1000000);
 	}
 }
 

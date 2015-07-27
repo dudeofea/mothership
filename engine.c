@@ -117,7 +117,7 @@ void ms_refresh(engine_config* config){
 			config->effects[i].arg_buf = (float*)malloc(1 * config->effects[i].arg_ports * sizeof(float));
 		}
 	}
-	ms_sort_wires(config);
+	//ms_sort_wires(config);
 }
 
 //init mothership
@@ -177,8 +177,8 @@ int ms_run_engine(float* in, float* out, int len, engine_config* config){
 	//printf("# of effects: %d, # of wires: %d\n", config->effects_size, config->run_order_size);
 	for (int i = 0; i < config->run_order_size - 1; ++i)
 	{
-		//printf("iteration %d\n", i+1);
 		current = config->run_order[i];
+		//printf("iteration %d: %s\n", i+1, config->effects[current.module].name);
 		//copy inputs
 		ports = config->effects[current.module].inp_ports;
 		size = config->effects[current.module].inp_size;
@@ -268,6 +268,21 @@ void ms_add_effect(effect_module e, engine_config* config){
 			config->effects_alloc * sizeof(effect_module));
 	}
 	ms_refresh(config);
+}
+
+void ms_create_effect(int in_p, int ou_p, int ar_p,
+					  int in_s, int ou_s,
+					  char* name, void (*effect_function)(float *in, float *out, float *arg, void* aux), engine_config* config){
+	//nicer function for defining effects
+	effect_module e = {
+		in_p, ou_p, ar_p,
+		in_s, ou_s,
+		NULL, NULL, NULL,
+		NULL, 0,
+		name,
+		effect_function
+	};
+	ms_add_effect(e, config);
 }
 
 //TODO: re-index all wires when this happens
@@ -442,10 +457,10 @@ void ms_sort_wires(engine_config* config){
 void ms_add_wire(wire w, engine_config* config){
 	//if effect exists
 	if (w.module < config->effects_size){
-		int insert_index = 0;
-		int assoc_index = 0;
-		effect_module tmp = config->effects[w.module];
-		//must come after all it's inputs
+		int insert_index = config->run_order_size - 1;
+		//int assoc_index = 0;
+		//effect_module tmp = config->effects[w.module];
+		/*//must come after all it's inputs
 		for (int i = 0; i < tmp.inp_ports; ++i)
 		{
 			assoc_index = ms_get_assoc_wire_index(w.inp[i], config);
@@ -464,7 +479,7 @@ void ms_add_wire(wire w, engine_config* config){
 				insert_index = assoc_index + 1;
 				//printf("wire moved to %d\n", insert_index);
 			}
-		}
+		}*/
 		add_wire_to_index(w, insert_index, config);
 	}
 }
@@ -508,6 +523,14 @@ void ms_wire_alloc(wire *w, engine_config* config){
 		w->arg[i] = NO_INPUT;
 		config->effects[w->module].arg_buf[i] = 0.0f;
 	}
+}
+
+wire ms_create_wire(int module, engine_config* config){
+	wire w = {
+		module,NULL,NULL,NULL,NULL
+	};
+	ms_wire_alloc(&w, config);
+	return w;
 }
 
 //Creates a midi sample object given the attack, decay and release times

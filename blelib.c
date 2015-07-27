@@ -43,6 +43,7 @@ static GAttrib *attrib = NULL;
 static pthread_t ble_thread = NULL;
 static int ble_connected = 0;
 static int ble_read = 0;
+static int ble_write = 0;
 static uint8_t *ble_read_val;
 static ssize_t ble_read_len;
 
@@ -71,6 +72,22 @@ static void char_read_cb(guint8 status, const guint8 *pdu, guint16 plen,
 	ble_read_val = value;
 	ble_read_len = vlen;
 	ble_read = 1;
+}
+//callback for when a ble write is complete
+static void char_write_cb(guint8 status, const guint8 *pdu, guint16 plen,
+							gpointer user_data)
+{
+	if (status != 0) {
+		printf("Characteristic Write Request failed: "
+						"%s\n", att_ecode2str(status));
+		return;
+	}
+
+	if (!dec_write_resp(pdu, plen) && !dec_exec_write_resp(pdu, plen)) {
+		printf("Protocol error\n");
+		return;
+	}
+	ble_write = 1;
 }
 //callback function when we get connected
 static void connect_cb(GIOChannel *io, GError *err, gpointer user_data)
@@ -124,13 +141,35 @@ int ble_char_read(int handle, unsigned char* buf){
 			return 0;
 		}
 	}
-    printf("(%lfms) len: %d\n", elapsedTime, ble_read_len);
+    //printf("(%lfms) len: %d\n", elapsedTime, (int)ble_read_len);
 	/*for (i = 0; i < ble_read_len; i++){
 		printf("%02x ", ble_read_val[i]);
 	}
 	printf("\n");*/
 	memcpy(buf, ble_read_val, ble_read_len);
 	return ble_read_len;
+}
+//writes to a certain handle the given bytes in buf for the given length
+void ble_char_write(int handle, unsigned char* buf, int len){
+	//ignore 0 length requests
+	if(len <= 0){ return; }
+	ble_write = 0;
+	gettimeofday(&t1, NULL);
+	gatt_write_char(attrib, handle, buf,
+					len, char_write_cb, NULL);
+	//wait for write to be done
+	while(!ble_write){
+		usleep(10000);
+		gettimeofday(&t2, NULL);
+		elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000.0;      // sec to ms
+		elapsedTime += (t2.tv_usec - t1.tv_usec) / 1000.0;   // us to ms
+		if (elapsedTime > 500)	//timeout of 500ms
+		{
+			printf("write error: %lf\n", elapsedTime);
+			return;
+		}
+	}
+    //printf("write: (%lfms)\n", elapsedTime);
 }
 //launches a connection on a separate thread, waits for connection.
 //this is because the other thread locks upon connecting to run g_main_loop
