@@ -8,7 +8,7 @@ all:
 	$(CC) $(CFLAGS) -c mothership.c -o mothership.o
 	$(CC) $(CFLAGS) -o mothership *.o -lm -lfftw3 -lncurses -ljack -L. -lble
 	#$(CC) $(CFLAGS) -o ble_test ble_test.c
-	rm -rf *.
+	rm -rf *.o
 old:
 	$(CC) $(CFLAGS) -c effects.c -o effects.o
 	$(CC) $(CFLAGS) -c jack_client.c -o jack_client.o -ljack -lfftw3 -lm
