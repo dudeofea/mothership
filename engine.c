@@ -244,29 +244,30 @@ void ms_set_effect_arg(int index, int arg_port, float val, engine_config* config
 //Assumes there is room then doubles the size
 //if neccessary.
 void ms_add_effect(effect_module e, engine_config* config){
-	//copy to array
-	config->effects[config->effects_size] = e;
-	//create new global buffer so nothing conflicts
-	config->effects[config->effects_size].aux = malloc(config->effects[config->effects_size].aux_size);
-	//copy over init values
-	if (config->effects[config->effects_size].aux != NULL){
-		//copy from old values or set to 0
-		if(e.aux != NULL)
-			memcpy(config->effects[config->effects_size].aux, e.aux, e.aux_size);
-		else
-			memset(config->effects[config->effects_size].aux, 0, e.aux_size);
-	}
-	//clear other buffers just in case
-	config->effects[config->effects_size].inp_buf = NULL;
-	config->effects[config->effects_size].out_buf = NULL;
-	config->effects[config->effects_size].arg_buf = NULL;
 	config->effects_size++;
 	if (config->effects_size > config->effects_alloc)
 	{
 		config->effects_alloc *= 2;		//double array size
+		//printf("increasing effects array size to %d\n", config->effects_alloc);
 		config->effects = (effect_module*)realloc(config->effects, 
 			config->effects_alloc * sizeof(effect_module));
 	}
+	//copy to array
+	config->effects[config->effects_size-1] = e;
+	//create new global buffer so nothing conflicts
+	config->effects[config->effects_size-1].aux = malloc(config->effects[config->effects_size-1].aux_size);
+	//copy over init values
+	if (config->effects[config->effects_size-1].aux != NULL){
+		//copy from old values or set to 0
+		if(e.aux != NULL)
+			memcpy(config->effects[config->effects_size-1].aux, e.aux, e.aux_size);
+		else
+			memset(config->effects[config->effects_size-1].aux, 0, e.aux_size);
+	}
+	//clear other buffers just in case
+	config->effects[config->effects_size-1].inp_buf = NULL;
+	config->effects[config->effects_size-1].out_buf = NULL;
+	config->effects[config->effects_size-1].arg_buf = NULL;
 	ms_refresh(config);
 }
 
@@ -380,21 +381,20 @@ void ms_remove_and_insert_wire(int index, int new_index, engine_config* config){
 
 //Adds a patch cable to a specified index
 void add_wire_to_index(wire w, int index, engine_config* config){
-	wire* run_order = config->run_order;
-	//printf("adding wire to %d\n", index);
 	config->run_order_size++;
-	if (config->run_order_size > config->run_order_alloc)
+	if (config->run_order_size >= config->run_order_alloc)
 	{
 		config->run_order_alloc *= 2;		//double array size
+		//printf("increasing wire array size to %ld\n", config->run_order_alloc * sizeof(wire));
 		config->run_order = (wire*)realloc(config->run_order, 
 			config->run_order_alloc * sizeof(wire));
 	}
 	//upshift everything
-	for (int i = config->run_order_size - 1; i >= index; i--)
+	for (int i = config->run_order_size - 2; i >= index; i--)
 	{
-		run_order[i+1] = run_order[i];
+		config->run_order[i+1] = config->run_order[i];
 	}
-	run_order[index] = w;
+	config->run_order[index] = w;
 }
 
 //Finds the index of the wire associated with 

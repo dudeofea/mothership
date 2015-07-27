@@ -37,4 +37,6 @@ nosetests.xml
 .pydevproject
 
 mothership
+perf_tests
+tests/tests
 log.txt
