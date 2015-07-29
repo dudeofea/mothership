@@ -4,7 +4,14 @@ LiquidCrystal lcd(22, 23, 27, 26, 25, 24);
 int r,g,b;
 int val = 0;
 int len = 0;
-char buf[20];
+char buf[40];
+
+//module variables
+int inp_ports = 0;
+int out_ports = 0;
+int arg_ports = 0;
+int mod_r = 0, mod_g = 0, mod_b = 0;
+char mod_name[17];
 
 void setup() {
 	// put your setup code here, to run once:
@@ -22,7 +29,7 @@ int read_msg(){
 	len = -1;
 	if(Serial1.available()){
 		len = Serial1.read();
-		for(int i = 0; i < len; i++){
+		for(int i = 0; i < len-1; i++){
 			val = -1;
 			while(val < 0){
 				val = Serial1.read();
@@ -31,6 +38,22 @@ int read_msg(){
 		}
 	}
 	return len;
+}
+
+void clear_buf(){
+   for(int i = 0; i < sizeof(buf); i++){
+       buf[i] = 0;
+   } 
+}
+
+void refresh_screen(){
+    //print info
+    lcd.clear();
+    lcd.print(mod_name);
+    //set color
+    analogWrite(2,255 - mod_b);
+    analogWrite(3,255 - mod_g);
+    analogWrite(4,255 - mod_r);
 }
 
 String getHexColor(int red, int gre, int blu){
@@ -107,7 +130,7 @@ void sendPinValues(){
   //Send VAL command
   Serial1.write(0x1);
   for(int i = 0; i < 13; i++){
-     Serial1.write(vals[i]); 
+     Serial1.write(vals[i]);
   }
   Serial1.flush();
 }
@@ -119,18 +142,21 @@ void initModule(int mod){
   Serial1.write(2);  //module details req cmd
   Serial1.write(mod);
   int len = -1;
-  while(len < 0){
+  while(len <= 0){
     len = read_msg();
   }
-  Serial.println(len, DEC);
-  for(int i = 0; i < 3; i++){
-      Serial.print(buf[i], DEC);
-      Serial.print(' ');
-  }
-  for(int i = 3; i < len; i++){
-    Serial.print(buf[i]);
-  }
-  Serial.print('\n');
+  //set info
+  inp_ports = buf[0];
+  out_ports = buf[1];
+  arg_ports = buf[2];
+  mod_r = buf[3];
+  mod_g = buf[4];
+  mod_b = buf[5];
+  
+  strncpy(mod_name, buf+6, 17);
+  //refresh screen
+  refresh_screen();
+  clear_buf();
 }
 
 void loop() {

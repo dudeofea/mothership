@@ -42,6 +42,7 @@ void process_cmds(engine_config* config){
 	int count = 0;
 	while(!done){
 		//get input
+		memset(buf, 0, sizeof(buf));
 		int len = ble_char_read(0x0012, buf);
 		if(len > 0){
 			switch(buf[0]){
@@ -73,12 +74,17 @@ void process_cmds(engine_config* config){
 					//get module id
 					id = buf[1];
 					//response breakdown:
-					//<len> <in_ports> <out_ports> <arg_ports> <name>
+					//<len> <in_ports> <out_ports> <arg_ports> <color> <name>
 					buf[0] = 0;
 					buf[1] = config->effects[id].inp_ports;
 					buf[2] = config->effects[id].out_ports;
 					buf[3] = config->effects[id].arg_ports;
-					strcpy((char*)buf+4, config->effects[id].name);
+					//RGB
+					buf[4] = 255;
+					buf[5] = 128;
+					buf[6] = 0;
+					//name
+					strcpy((char*)buf+7, config->effects[id].name);
 					buf[0] = strlen(config->effects[id].name) + 5;
 					printf("len: %d\n", buf[0]);
 					ble_char_write(0x0016, buf, buf[0]);
