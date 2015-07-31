@@ -35,7 +35,10 @@ int read_msg(){
 				val = Serial1.read();
 			}
 			buf[i] = val;
+                        //Serial.print(buf[i], DEC);
+                        //Serial.print(' ');
 		}
+                //Serial.print('\n');
 	}
 	return len;
 }
@@ -153,7 +156,12 @@ void initModule(int mod){
   mod_g = buf[4];
   mod_b = buf[5];
   
-  strncpy(mod_name, buf+6, 17);
+  //get name
+  len = -1;
+  while(len <= 0){
+    len = read_msg();
+  }
+  strncpy(mod_name, buf, 17);
   //refresh screen
   refresh_screen();
   clear_buf();
