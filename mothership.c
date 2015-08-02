@@ -74,9 +74,9 @@ void process_cmds(engine_config* config){
 					//get module id
 					id = buf[1];
 					//response breakdown:
-					//<len> <in_ports> <out_ports> <arg_ports> <color>
+					//<len> <in_ports> <out_ports> <arg_ports> <color> <total_effects>
 					//<len> <name>
-					buf[0] = 7;
+					buf[0] = 8;
 					buf[1] = config->effects[id].inp_ports;
 					buf[2] = config->effects[id].out_ports;
 					buf[3] = config->effects[id].arg_ports;
@@ -84,6 +84,8 @@ void process_cmds(engine_config* config){
 					buf[4] = 255;
 					buf[5] = 128;
 					buf[6] = 0;
+					//total # of effects
+					buf[7] = config->effects_size;
 					//send
 					ble_char_write(0x0016, buf, buf[0]);
 					//send second packet with name in it

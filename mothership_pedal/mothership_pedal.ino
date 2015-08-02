@@ -5,13 +5,16 @@ int r,g,b;
 int val = 0;
 int len = 0;
 char buf[40];
+int effects_len = 0;
 
 //module variables
+int mod = 0;
 int inp_ports = 0;
 int out_ports = 0;
 int arg_ports = 0;
 int mod_r = 0, mod_g = 0, mod_b = 0;
 char mod_name[17];
+int mod_name_len = 0;
 
 void setup() {
 	// put your setup code here, to run once:
@@ -50,13 +53,43 @@ void clear_buf(){
 }
 
 void refresh_screen(){
-    //print info
-    lcd.clear();
-    lcd.print(mod_name);
     //set color
     analogWrite(2,255 - mod_b);
     analogWrite(3,255 - mod_g);
     analogWrite(4,255 - mod_r);
+    //print info
+    lcd.clear();
+    //center name with dashes
+    int before_count = (16 - mod_name_len)/2;
+    //show arrow if not first
+    if(mod > 0){
+      lcd.print((char)127); //left arrow
+    }else{
+       lcd.print('-');
+    }
+    for(int i = 0; i < before_count-1; i++){
+       lcd.print('-'); 
+    }
+    for(int i = 0; i < mod_name_len; i++){
+       lcd.print(mod_name[i]); 
+    }
+    for(int i = 0; i < 15 - (mod_name_len + before_count); i++){
+       lcd.print('-');
+    }
+    //show arrow if not last
+    if(mod < effects_len - 1){
+       lcd.print((char)126); //right arrow
+    }else{
+       lcd.print('-');
+    }
+    //print port numbers
+    lcd.setCursor(0, 1);
+    lcd.print("I:");
+    lcd.print(inp_ports);
+    lcd.setCursor(8, 1);
+    lcd.print("O:");
+    lcd.print(out_ports);
+    //print connections
 }
 
 String getHexColor(int red, int gre, int blu){
@@ -140,7 +173,7 @@ void sendPinValues(){
 
 //Ask server for module details and display
 //info accordingly
-void initModule(int mod){
+void initModule(){
   //send request
   Serial1.write(2);  //module details req cmd
   Serial1.write(mod);
@@ -155,12 +188,14 @@ void initModule(int mod){
   mod_r = buf[3];
   mod_g = buf[4];
   mod_b = buf[5];
+  effects_len = buf[6];
   
   //get name
   len = -1;
   while(len <= 0){
     len = read_msg();
   }
+  mod_name_len = len - 1;
   strncpy(mod_name, buf, 17);
   //refresh screen
   refresh_screen();
@@ -203,8 +238,8 @@ void loop() {
         //Pin testing
         //sendPinValues();
         //Read testing
-        initModule(0);
-        delay(50);
+        initModule();
+        delay(100);
 }
 
 

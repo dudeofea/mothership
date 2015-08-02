@@ -68,7 +68,7 @@ void init_effects(engine_config* config){
 		0, BUFFER_LEN,			//in size, out size
 		NULL, NULL, NULL,
 		NULL, 4*sizeof(float),
-		"sine generator",
+		"sine",
 		chordifier
 	};
 	wire w = {
