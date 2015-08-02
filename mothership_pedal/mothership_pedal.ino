@@ -1,5 +1,9 @@
 #include <LiquidCrystal.h>
 
+#define BUTTON_LEFT    51
+#define BUTTON_CENTER  52
+#define BUTTON_RIGHT   53
+
 LiquidCrystal lcd(22, 23, 27, 26, 25, 24);
 int r,g,b;
 int val = 0;
@@ -21,6 +25,9 @@ void setup() {
 	pinMode(2, OUTPUT);
 	pinMode(3, OUTPUT);
 	pinMode(4, OUTPUT);
+        pinMode(BUTTON_LEFT, INPUT_PULLUP);
+        pinMode(BUTTON_CENTER, INPUT_PULLUP);
+        pinMode(BUTTON_RIGHT, INPUT_PULLUP);
 	Serial.begin(9600);
 	//BLE Mini Setup
 	Serial1.begin(57600);
@@ -238,7 +245,20 @@ void loop() {
         //Pin testing
         //sendPinValues();
         //Read testing
-        initModule();
+        //initModule();
+        //buttons testing
+        val = digitalRead(BUTTON_LEFT);
+        if(val == LOW){
+           Serial.print("left\n");
+        }
+        val = digitalRead(BUTTON_CENTER);
+        if(val == LOW){
+           Serial.print("center\n");
+        }
+        val = digitalRead(BUTTON_RIGHT);
+        if(val == LOW){
+           Serial.print("right\n");
+        }
         delay(100);
 }
 
