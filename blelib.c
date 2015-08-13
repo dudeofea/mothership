@@ -40,6 +40,8 @@
 
 static GIOChannel *iochannel = NULL;
 static GAttrib *attrib = NULL;
+static GMainLoop *loop = NULL;
+static GError *connect_err = NULL;
 static pthread_t ble_thread = NULL;
 static int ble_connected = 0;
 static int ble_read = 0;
@@ -49,6 +51,8 @@ static ssize_t ble_read_len;
 
 static struct timeval t1, t2;
 static double elapsedTime;
+
+static const char* name;
 
 //callback function for when we receive a ble message
 static void char_read_cb(guint8 status, const guint8 *pdu, guint16 plen,
@@ -60,12 +64,14 @@ static void char_read_cb(guint8 status, const guint8 *pdu, guint16 plen,
 	if (status != 0) {
 		printf("Characteristic value/descriptor read failed: %s\n",
 							att_ecode2str(status));
+		ble_disconnect();
 		return;
 	}
 
 	vlen = dec_read_resp(pdu, plen, value, sizeof(value));
 	if (vlen < 0) {
 		printf("Protocol error\n");
+		ble_disconnect();
 		return;
 	}
 
@@ -80,11 +86,13 @@ static void char_write_cb(guint8 status, const guint8 *pdu, guint16 plen,
 	if (status != 0) {
 		printf("Characteristic Write Request failed: "
 						"%s\n", att_ecode2str(status));
+		ble_disconnect();
 		return;
 	}
 
 	if (!dec_write_resp(pdu, plen) && !dec_exec_write_resp(pdu, plen)) {
 		printf("Protocol error\n");
+		ble_disconnect();
 		return;
 	}
 	ble_write = 1;
@@ -97,6 +105,11 @@ static void connect_cb(GIOChannel *io, GError *err, gpointer user_data)
 		return;
 	}
 
+	if (connect_err) {
+		printf("%s\n", connect_err->message);
+		return;
+	}
+
 	attrib = g_attrib_new(iochannel);
 	if(attrib == NULL){
 		printf("Connect Error\n");
@@ -105,8 +118,7 @@ static void connect_cb(GIOChannel *io, GError *err, gpointer user_data)
 }
 //function to actually make the connection
 void *new_ble_connection(void *opt_dst_void){
-	GError *gerr = NULL;
-	GMainLoop *loop = g_main_loop_new (NULL, FALSE);
+	loop = g_main_loop_new (NULL, FALSE);
 	//Connect to address
 	char *opt_src = NULL;
 	char *opt_dst = (char*)opt_dst_void;
@@ -115,7 +127,7 @@ void *new_ble_connection(void *opt_dst_void){
 	int opt_psm = 0;
 	int opt_mtu = 0;
 	iochannel = gatt_connect(opt_src, opt_dst, opt_dst_type, opt_sec_level,
-					opt_psm, opt_mtu, connect_cb, &gerr);
+					opt_psm, opt_mtu, connect_cb, &connect_err);
 	if(iochannel == NULL){
 		printf("iochannel error\n");
 	}
@@ -125,8 +137,10 @@ void *new_ble_connection(void *opt_dst_void){
 }
 //reads a certain handle and places value into buf, returns length
 int ble_char_read(int handle, unsigned char* buf){
-	//int i;
-
+	//auto connect if not connected
+	if(!ble_connected){
+		ble_connect(name);
+	}
 	ble_read = 0;
 	gettimeofday(&t1, NULL);
 	gatt_read_char(attrib, handle, char_read_cb, attrib);
@@ -138,6 +152,7 @@ int ble_char_read(int handle, unsigned char* buf){
 		if (elapsedTime > 250)	//timeout of 250ms
 		{
 			printf("read error: %lf\n", elapsedTime);
+			ble_disconnect();
 			return 0;
 		}
 	}
@@ -151,6 +166,10 @@ int ble_char_read(int handle, unsigned char* buf){
 }
 //writes to a certain handle the given bytes in buf for the given length
 void ble_char_write(int handle, unsigned char* buf, int len){
+	//auto connect if not connected
+	if(!ble_connected){
+		ble_connect(name);
+	}
 	//ignore 0 length requests
 	if(len <= 0){ return; }
 	ble_write = 0;
@@ -166,6 +185,7 @@ void ble_char_write(int handle, unsigned char* buf, int len){
 		if (elapsedTime > 500)	//timeout of 500ms
 		{
 			printf("write error: %lf\n", elapsedTime);
+			ble_disconnect();
 			return;
 		}
 	}
@@ -174,9 +194,19 @@ void ble_char_write(int handle, unsigned char* buf, int len){
 //launches a connection on a separate thread, waits for connection.
 //this is because the other thread locks upon connecting to run g_main_loop
 void ble_connect(const char *mac){
+	name = mac;
 	pthread_create(&ble_thread, NULL, new_ble_connection, (void*)mac);
 	while(!ble_connected){
 		//printf("waiting...\n");
 		usleep(100000);
 	}
+}
+
+//this destroys the launched thread and disconnects from the BLE device
+void ble_disconnect(){
+	//stop the main loop
+	g_main_loop_quit(loop);
+	pthread_join(ble_thread, NULL);
+	usleep(10000);
+	ble_connected = 0;
 }

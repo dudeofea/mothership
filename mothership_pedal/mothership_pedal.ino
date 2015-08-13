@@ -245,9 +245,9 @@ void loop() {
         //Pin testing
         //sendPinValues();
         //Read testing
-        //initModule();
+        initModule();
         //buttons testing
-        val = digitalRead(BUTTON_LEFT);
+        /*val = digitalRead(BUTTON_LEFT);
         if(val == LOW){
            Serial.print("left\n");
         }
@@ -258,7 +258,7 @@ void loop() {
         val = digitalRead(BUTTON_RIGHT);
         if(val == LOW){
            Serial.print("right\n");
-        }
+        }*/
         delay(100);
 }
 
