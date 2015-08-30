@@ -17,6 +17,8 @@ typedef struct
 	int *notes;
 }sequence;
 
+void volume(float *in, float *out, float *arg, void *aux);
+void low_pass_filter(float *in, float *out, float *arg, void *aux);
 void beat_freq_effect(float *in, float *out, float *arg, void *aux);
 void chordifier(float *in, float *out, float *arg, void *aux);
 void sequencer_effect(float *in, float *out, float *arg, void *aux);
@@ -69,7 +71,8 @@ void init_effects(engine_config* config){
 		NULL, NULL, NULL,
 		NULL, 4*sizeof(float),
 		"chordifier",
-		chordifier
+		chordifier,
+		255,0,0
 	};
 	wire w = {
 		0,NULL,NULL,NULL,NULL
@@ -79,8 +82,27 @@ void init_effects(engine_config* config){
 	//w.arg[0] = 0;
 	//w.arg_ports[0] = 0;
 	ms_add_wire(w, config);
+
+	effect_module e2 = {
+		1, 1, 10,				//in, out, arg
+		0, BUFFER_LEN,			//in size, out size
+		NULL, NULL, NULL,
+		NULL, 1*sizeof(float),
+		"low pass filter",
+		volume,
+		126, 4, 90
+	};
+	wire w2 = {
+		1,NULL,NULL,NULL,NULL
+	};
+	ms_add_effect(e2, config);
+	ms_wire_alloc(&w2, config);
+	w2.inp[0] = 0;
+	w2.inp_ports[0] = 0;
+	ms_add_wire(w2, config);
+
 	ms_set_effect_arg(0, 0, 200.0, config);
-	ms_set_output_module(0, 0, config);
+	ms_set_output_module(1, 0, config);
 	/*effect_module e2 = {
 		0, 1, 1,
 		0, 1,
@@ -141,6 +163,27 @@ void init_effects(engine_config* config){
 	}
 }*/
 
+//a simple volume effect
+void volume(float *in, float *out, float *arg, void *aux){
+	for (int i = 0; i < BUFFER_LEN; ++i)
+	{
+		out[i] = arg[0]/1024 * in[i];
+	}
+}
+
+//a low pass filter
+void low_pass_filter(float *in, float *out, float *arg, void *aux){
+	float last = ((float*)aux)[0];	//last in value
+	float s = arg[0]/1024;	//strength of filter
+	out[0] = (1.0-s)*in[0] + (s)*last;
+	for (int i = 1; i < BUFFER_LEN; ++i)
+	{
+		out[i] = (1.0-s)*in[i] + (s)*in[i-1];
+	}
+	((float*)aux)[0] = in[BUFFER_LEN-1];	//store last value
+}
+
+//try to generate a beat frequency
 void beat_freq_effect(float *in, float *out, float *arg, void *aux){
 	float index = ((float*)aux)[0];	//get index value
 	float tmp_index = index;
@@ -172,6 +215,7 @@ void beat_freq_effect(float *in, float *out, float *arg, void *aux){
     ((float*)aux)[0] = index;	//store index value
 }
 
+//make drone-like chords
 void chordifier(float *in, float *out, float *arg, void *aux){
 	memset(out, 0, BUFFER_LEN*sizeof(float));
 	float main_freq = half_step[(int)(arg[0]/16)];

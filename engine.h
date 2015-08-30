@@ -43,6 +43,8 @@ typedef struct
 	int aux_size;		//size of global buffer in bytes
 	char* name;			//name of the effect
 	void (*effect_function)(float *in, float *out, float *arg, void* aux);
+
+	int r, g, b;		//colors for display
 } effect_module;
 
 typedef struct

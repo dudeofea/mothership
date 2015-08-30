@@ -49,7 +49,7 @@ void process_cmds(engine_config* config){
 				case 1:		//pedal is sending values
 					memset(vals, 0, sizeof(vals));
 					int bitcount = 8;	//bit count in first byte
-					int bufoff = 1;		//skip the command byte
+					int bufoff = 2;		//skip the command byte / module byte
 					printf("[%d] ", count);
 					for (int i = 0; i < 10; ++i)
 					{
@@ -67,7 +67,7 @@ void process_cmds(engine_config* config){
 					//set the value
 					for (int i = 0; i < config->effects[0].arg_ports; ++i)
 					{
-						ms_set_effect_arg(0, i, (float)vals[i], config);
+						ms_set_effect_arg(buf[1], i, (float)vals[i], config);
 					}
 					break;
 				case 2:		//pedal is requesting module details
@@ -81,9 +81,9 @@ void process_cmds(engine_config* config){
 					buf[2] = config->effects[id].out_ports;
 					buf[3] = config->effects[id].arg_ports;
 					//RGB
-					buf[4] = 255;
-					buf[5] = 128;
-					buf[6] = 0;
+					buf[4] = config->effects[id].r;
+					buf[5] = config->effects[id].g;
+					buf[6] = config->effects[id].b;
 					//total # of effects
 					buf[7] = config->effects_size;
 					//send
