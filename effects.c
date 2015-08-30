@@ -68,7 +68,7 @@ void init_effects(engine_config* config){
 		0, BUFFER_LEN,			//in size, out size
 		NULL, NULL, NULL,
 		NULL, 4*sizeof(float),
-		"sine",
+		"chordifier",
 		chordifier
 	};
 	wire w = {
@@ -177,10 +177,11 @@ void chordifier(float *in, float *out, float *arg, void *aux){
 	float main_freq = half_step[(int)(arg[0]/16)];
 	float freq = main_freq;
 	for(int j = 0; j < 4; j++){
+		float vol_div = 512*(j+1);
 		float index = ((float*)aux)[j];	//get index value
 		for (int i = 0; i < BUFFER_LEN; ++i)
 		{
-			out[i] += arg[j+4]/512*sine_wave[(int)index];
+			out[i] += arg[j+4]/vol_div*sine_wave[(int)index];
 			index += freq*SINE_WAVE_LEN/SAMPLE_RATE;
 			if (index >= SINE_WAVE_LEN)
 			{

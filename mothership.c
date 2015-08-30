@@ -126,7 +126,7 @@ void process_cmds(engine_config* config){
 				return;
 			}*/
 		};
-		usleep(1000000);
+		//usleep(1000000);
 	}
 }
 

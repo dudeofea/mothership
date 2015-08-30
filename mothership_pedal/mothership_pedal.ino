@@ -11,6 +11,11 @@ int len = 0;
 char buf[40];
 int effects_len = 0;
 
+//state variables
+int mod_init = 0;     //1 if module initialized, 0 otherwise
+int page = 0;         //0 is main page, 1 is settings
+int action_timeout = 0;//timeout so buttons don't loop so much
+
 //module variables
 int mod = 0;
 int inp_ports = 0;
@@ -180,7 +185,7 @@ void sendPinValues(){
 
 //Ask server for module details and display
 //info accordingly
-void initModule(){
+void init_mod(){
   //send request
   Serial1.write(2);  //module details req cmd
   Serial1.write(mod);
@@ -207,10 +212,39 @@ void initModule(){
   //refresh screen
   refresh_screen();
   clear_buf();
+  //set flag
+  mod_init = 1;
 }
 
 void loop() {
- 	// put your main code here, to run repeatedly:
+        //init the module if not initialized
+        Serial.print(mod, DEC);
+        Serial.println(effects_len, DEC);
+        if(!mod_init){
+           init_mod();
+        }else if(page == 0){
+            //send values
+            sendPinValues();
+            //check for buttons
+            if(action_timeout <= 0 && digitalRead(BUTTON_LEFT) == LOW){
+              //goto prev module
+              if(mod > 0){
+                 Serial.print("left\n");
+                 action_timeout = 300;
+                 mod--;
+                 mod_init = 0; 
+              }
+            }
+            if(action_timeout <= 0 && digitalRead(BUTTON_RIGHT) == LOW){
+              //goto next module
+              if(mod < effects_len - 1){
+                 Serial.print("right\n");
+                 action_timeout = 300;
+                 mod++;
+                 mod_init = 0;
+              }
+            }
+        }
  	/*if(read_msg() > 0){
 		//get msg type
 		switch(buf[0]){
@@ -244,8 +278,6 @@ void loop() {
 	//delay(100);*/
         //Pin testing
         //sendPinValues();
-        //Read testing
-        initModule();
         //buttons testing
         /*val = digitalRead(BUTTON_LEFT);
         if(val == LOW){
@@ -259,7 +291,10 @@ void loop() {
         if(val == LOW){
            Serial.print("right\n");
         }*/
-        delay(100);
+        delay(10);
+        if(action_timeout >= 0){
+           action_timeout -= 100;
+        }
 }
 
 
