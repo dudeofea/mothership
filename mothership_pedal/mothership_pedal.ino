@@ -16,6 +16,7 @@ int pots[10];      //current values of pots
 int last_pots[10]; //last values of pots
 
 //state variables
+int packet_num = 77;
 int mod_init = 0;     //1 if module initialized, 0 otherwise
 int page = 0;         //0 is main page, 1 is settings
 int action_timeout = 0;//timeout so buttons don't loop so much
@@ -139,8 +140,6 @@ void sendPinValues(){
   if(old == 0){
     return;
   }
-  Serial.print("---");
-  Serial.println(abs(last_pots[0]-pots[0]), DEC);
   //compress
   byte vals[13];
   memset(vals, 0, sizeof(vals));
@@ -191,20 +190,27 @@ void sendPinValues(){
   
   //char str[10];
   //Send VAL command
+  Serial.print("Sending: ");
+  Serial.println(packet_num);
+  Serial1.write(packet_num);
   Serial1.write(0x1);
   Serial1.write(mod);
   for(int i = 0; i < 13; i++){
      Serial1.write(vals[i]);
   }
   Serial1.flush();
+  packet_num++;
 }
 
 //Ask server for module details and display
 //info accordingly
 void init_mod(){
   //send request
-  Serial1.write(2);  //module details req cmd
+  Serial1.write(packet_num);
+  Serial1.write(0x2);  //module details req cmd
   Serial1.write(mod);
+  Serial1.flush();
+  packet_num++;
   int len = -1;
   while(len <= 0){
     len = read_msg();
@@ -234,8 +240,6 @@ void init_mod(){
 
 void loop() {
         //init the module if not initialized
-        Serial.print(mod, DEC);
-        Serial.println(effects_len, DEC);
         if(mod_init == 0){
            init_mod();
         }else if(page == 0){
@@ -306,7 +310,7 @@ void loop() {
         if(val == LOW){
            Serial.print("right\n");
         }*/
-        delay(10);
+        delay(50);
         if(action_timeout >= 0){
            action_timeout -= 100;
         }

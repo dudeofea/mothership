@@ -40,17 +40,25 @@ void process_cmds(engine_config* config){
 	unsigned int vals[10];
 	ble_connect("D0:39:72:C3:AC:AA");
 	int count = 0;
+	int pkt = -1;
 	while(!done){
 		//get input
 		memset(buf, 0, sizeof(buf));
 		int len = ble_char_read(0x0012, buf);
-		if(len > 0){
-			switch(buf[0]){
+		for (int i = 0; i < len; ++i)
+		{
+			printf("%d ", buf[i]);
+		}
+		printf("\n");
+		if(len > 0 && buf[0] != pkt){
+			pkt = buf[0];	//set new packet number
+			switch(buf[1]){
 				case 1:		//pedal is sending values
 					memset(vals, 0, sizeof(vals));
 					int bitcount = 8;	//bit count in first byte
-					int bufoff = 2;		//skip the command byte / module byte
+					int bufoff = 3;		//skip the pkt byte / command byte / module byte
 					printf("[%d] ", count);
+					//unpack values (10x10bit values in 12.5 bytes)
 					for (int i = 0; i < 10; ++i)
 					{
 						vals[i] |= (buf[i+bufoff] & ((1<<bitcount)-1));
@@ -67,12 +75,17 @@ void process_cmds(engine_config* config){
 					//set the value
 					for (int i = 0; i < config->effects[0].arg_ports; ++i)
 					{
-						ms_set_effect_arg(buf[1], i, (float)vals[i], config);
+						ms_set_effect_arg(buf[2], i, (float)vals[i], config);
 					}
 					break;
 				case 2:		//pedal is requesting module details
 					//get module id
-					id = buf[1];
+					id = buf[2];
+					printf("request for module %d\n", id);
+					if(id < 0 || id >= config->effects_size){
+						printf("invalid module index: %d\n", id);
+						break;
+					}
 					//response breakdown:
 					//<len> <in_ports> <out_ports> <arg_ports> <color> <total_effects>
 					//<len> <name>
